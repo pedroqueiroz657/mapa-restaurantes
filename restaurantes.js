@@ -11,7 +11,7 @@ const RESTAURANTES = [
     bairro: "Av. Desembargador Moreira, 615",
     lat: -3.7317,
     lng: -38.4967,
-    foto: "",
+    foto: "fotos/casa-bea.webp",
     link: "https://www.instagram.com/casabearestaurante",
   },
   {
@@ -20,7 +20,7 @@ const RESTAURANTES = [
     bairro: "Rua Tibúrcio Cavalcante, 1656",
     lat: -3.739378,
     lng: -38.503822,
-    foto: "",
+    foto: "fotos/nato-confeitaria.png",
     link: "https://www.instagram.com/nato.confeitaria",
   },
   {
@@ -29,7 +29,7 @@ const RESTAURANTES = [
     bairro: "Rua Júlio Lima, 685",
     lat: -3.7954,
     lng: -38.499298,
-    foto: "",
+    foto: "fotos/padocaria-saudavel.jpg",
     link: "https://www.instagram.com/padocariasaudavel",
   },
   {
@@ -38,7 +38,7 @@ const RESTAURANTES = [
     bairro: "Av. Barão de Studart, 2821",
     lat: -3.74877,
     lng: -38.510948,
-    foto: "",
+    foto: "fotos/florenca-sem-gluten.jpg",
     link: "https://www.instagram.com/florencasemgluten",
   },
   {
@@ -47,7 +47,7 @@ const RESTAURANTES = [
     bairro: "Rua Antonina do Norte, 350",
     lat: -3.732,
     lng: -38.553699,
-    foto: "",
+    foto: "fotos/la-dulce-vita.jpg",
     link: "https://www.instagram.com/ladulcevitaoficial",
   },
   {
@@ -56,7 +56,7 @@ const RESTAURANTES = [
     bairro: "Rua Visconde de Mauá, 2140 · Aldeota",
     lat: -3.744117,
     lng: -38.502094,
-    foto: "",
+    foto: "fotos/casannas.jpg",
     link: "https://www.instagram.com/casannas_",
   },
 ];

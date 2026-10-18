@@ -64,7 +64,8 @@ button,input,textarea{font:inherit;color:inherit}
 /* detalhe */
 .voltar{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--green);font-weight:600;padding:6px 0;cursor:pointer}
 .voltar:hover{text-decoration:underline}
-.capa{width:100%;aspect-ratio:16/10;border-radius:20px;object-fit:cover;display:block;margin:10px 0 18px;background:var(--leaf)}
+/* contain: logos quadrados aparecem inteiros. Para fotos paisagem, troque por object-fit:cover */
+.capa{width:100%;height:210px;border-radius:20px;object-fit:contain;display:block;margin:10px 0 18px;background:var(--leaf)}
 .capa.ph{font-size:3.4rem}
 .detalhe h2{font-size:1.65rem;color:var(--green-deep)}
 .bairro{color:var(--muted);margin:.3rem 0 0}
