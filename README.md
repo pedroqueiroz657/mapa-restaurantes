@@ -1,52 +1,62 @@
 # Mapa de restaurantes de Fortaleza
 
-Site estático (GitHub Pages) + Supabase. A pessoa clica no restaurante, dá nota de 0 a 5, escolhe data/hora e a resposta cai na tabela `visitas`.
+Site estático (GitHub Pages) + Supabase.
+
+**Fluxo**
+1. A pessoa escolhe um restaurante no mapa e **marca o dia e a hora** (etapa 1 → tabela `marcacoes`).
+2. Depois, **avalia música, espaço e comida** com 0 a 5 estrelas (etapa 2 → tabela `avaliacoes`). A **nota média** é a média simples das categorias avaliadas e é calculada pelo banco.
 
 ```
 index.html          página (Leaflet + supabase-js via CDN)
-config.js           URL e anon key do Supabase
-restaurantes.js     lista de restaurantes (edite aqui)
-fotos/              coloque as fotos aqui
-supabase/schema.sql tabela + RLS
+config.js           URL e chave do Supabase (NÃO sobrescreva ao atualizar)
+restaurantes.js     lista de restaurantes
+fotos/              logos/fotos
+supabase/schema.sql tabelas + RLS + view de resumo
 supabase/functions/avisar-telegram/   aviso opcional no Telegram
 ```
 
-## 1. Supabase
-1. Crie um projeto em supabase.com.
-2. **SQL Editor > New query**: cole `supabase/schema.sql` e rode.
-3. **Project Settings > API**: copie `Project URL` e a chave `anon public` para o `config.js`.
+## Atualizando o banco (versão com duas etapas)
+No Supabase, **SQL Editor > New query**: cole `supabase/schema.sql` e rode. Pode rodar mais de uma vez. A tabela antiga `visitas` deixa de ser usada (apague quando quiser: `drop table if exists public.visitas;`).
 
-## 2. Restaurantes
-Edite `restaurantes.js` (id, nome, bairro, lat/lng, foto, link). Para pegar lat/lng: Google Maps, botão direito no local, clique nos números. Suba as fotos em `fotos/` e use `foto: "fotos/nome.jpg"`.
-
-## 3. GitHub Pages
-```bash
-git init && git add . && git commit -m "mapa de restaurantes"
-git branch -M main
-git remote add origin https://github.com/SEU-USUARIO/mapa-restaurantes.git
-git push -u origin main
+## Ver as respostas
+No SQL Editor (as consultas estão comentadas no fim do `schema.sql`):
+```sql
+select restaurante_id, data_hora at time zone 'America/Fortaleza' as quando, comentario from public.marcacoes order by criado_em desc;
+select restaurante_id, musica, espaco, comida, media, comentario from public.avaliacoes order by criado_em desc;
+select * from public.resumo_restaurantes;  -- ranking com média por categoria
 ```
-No repositório: **Settings > Pages > Deploy from a branch > main / (root)**. O site fica em `https://SEU-USUARIO.github.io/mapa-restaurantes/`.
 
-Teste localmente antes: `python3 -m http.server 8000` e abra `http://localhost:8000`.
+## Testando
+- No celular ou computador de teste, abra o site, marque um dia, avalie e confira as linhas no Supabase.
+- O site lembra, **só naquele aparelho**, o que já foi marcado/avaliado (para destravar a etapa 2 e mostrar os selos). Para recomeçar o teste, abra o site com `?reset` no final do endereço: `https://SEU-USUARIO.github.io/mapa-restaurantes/?reset`.
+- Depois do teste, apague as linhas de teste em **Table Editor** (`marcacoes` e `avaliacoes`).
 
-## 4. Onde ver as respostas
-- **Table Editor > visitas**, ou no SQL Editor (query pronta no fim do `schema.sql`, já no horário de Fortaleza).
+## Ajustes rápidos (no `index.html`, começo do script)
+- `LIBERAR_NOTA_SO_APOS_A_DATA = true` → as estrelas só liberam depois do dia/hora marcados (hoje liberam logo após marcar).
+- `CATEGORIAS` → nomes, dicas e ícones. Para **criar uma categoria nova**, adicione também a coluna no banco (`alter table public.avaliacoes add column ...`) e ajuste a fórmula da coluna `media`.
 
-## 5. (Opcional) Aviso no Telegram a cada resposta
-1. No Telegram, fale com `@BotFather`, crie um bot e guarde o token. Mande uma mensagem para o bot e pegue seu `chat_id` (por exemplo via `@userinfobot`).
+## Publicando
+```powershell
+git add index.html supabase README.md
+git commit -m "fluxo marcar e avaliar"
+git push
+```
+Atualize os arquivos um a um. Se descompactar um zip por cima da pasta, o `config.js` de modelo sobrescreve o seu.
+
+## Aviso no Telegram (opcional)
+1. Fale com `@BotFather`, crie um bot e guarde o token. Mande uma mensagem ao bot e pegue seu `chat_id` (por exemplo via `@userinfobot`).
 2. Com a Supabase CLI:
    ```bash
    supabase login && supabase link --project-ref SEU-REF
    supabase secrets set TELEGRAM_TOKEN=... TELEGRAM_CHAT_ID=... WEBHOOK_SECRET=uma-string-longa-aleatoria
    supabase functions deploy avisar-telegram --no-verify-jwt
    ```
-3. **Database > Webhooks > Create**: tabela `visitas`, evento `INSERT`, tipo HTTP Request, método POST, URL `https://SEU-REF.supabase.co/functions/v1/avisar-telegram`, header `x-webhook-secret` com o mesmo valor do secret.
+3. **Database > Webhooks > Create**, duas vezes: uma para a tabela `marcacoes` e outra para `avaliacoes`. Em ambas: evento `INSERT`, HTTP Request, POST, URL `https://SEU-REF.supabase.co/functions/v1/avisar-telegram`, header `x-webhook-secret` com o mesmo valor do secret.
 
-## Segurança e escala (o que vale saber)
-- **A anon key é pública**, e tudo bem: a proteção é o RLS. A tabela só tem policy de `INSERT`, então quem abre o site não consegue ler nem alterar nada. Nunca use a `service_role` no front.
-- **Spam:** qualquer um com a URL do site pode inserir linhas. Os `CHECK` do schema limitam tamanho e valores, mas não o volume. Se o link for ficar público, o próximo passo é inserir via Edge Function com Cloudflare Turnstile e rate limit. Para uso pessoal (só você e a Marina) o risco é baixo.
-- **Escala:** irrelevante aqui (poucas linhas). O índice em `criado_em` já cobre a consulta "últimas respostas".
+## Segurança e escala
+- **A chave publishable/anon é pública**, e tudo bem: a proteção é o RLS. As tabelas só têm policy de `INSERT`, então quem abre o site não lê nem altera nada. Nunca use a secret/`service_role` no front.
+- **Média no banco:** a coluna `media` é gerada pelo Postgres, então o navegador não consegue enviar uma média forjada. Os `CHECK` limitam notas (0 a 5) e tamanho dos textos.
+- **Spam:** qualquer um com a URL pode inserir linhas. Para uso pessoal o risco é baixo. Se o link for ficar público, o próximo passo é inserir via Edge Function com Cloudflare Turnstile e rate limit.
+- **Escala:** irrelevante aqui (poucas linhas). Os índices em `criado_em` cobrem as consultas de "últimas respostas".
 - **Plano gratuito do Supabase pausa o projeto após cerca de 1 semana sem atividade.** Se o envio falhar de repente, entre no painel e clique em *Restore*.
-- **Fotos:** hotlink de Instagram e de sites de terceiros costuma quebrar. Mantenha tudo em `fotos/`.
-- Cada envio cria uma nova linha (reenviar não sobrescreve). Para ler a decisão final, use a linha mais recente por `restaurante_id`.
+- Cada envio cria uma nova linha (remarcar ou refazer a avaliação não sobrescreve). Para a decisão final, use a linha mais recente por `restaurante_id`.

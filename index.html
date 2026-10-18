@@ -20,7 +20,7 @@
   --leaf:#D5E4CB; --hover:rgba(213,228,203,.6); --line:#C5D6BC; --gold:#C99A2E; --focus:#1D4D37;
   --pin:#2B6B4C; --pin-sel:#1D4D37; --pin-ring:rgba(29,77,55,.28);
   --warn-bg:#F6EBC8; --warn-line:#DDBF6A; --badge-bg:#F3E5B8; --badge-fg:#5E450C;
-  --err:#A3262F; --ok:#1D6B3E; --ph1:#2B6B4C; --ph2:#528A66;
+  --err:#A3262F; --ok:#1D6B3E; --done:#2F7F95; --badge2-bg:#D2E7EE; --badge2-fg:#174A5A; --ph1:#2B6B4C; --ph2:#528A66;
   --contour:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 170' preserveAspectRatio='xMaxYMid slice'%3E%3Cg fill='none' stroke='rgb(43,107,76)' stroke-opacity='.22' stroke-width='1.1'%3E%3Cpath d='M-10 150C70 90 130 175 215 120S350 60 430 105'/%3E%3Cpath d='M-10 128C70 70 135 150 215 98S350 42 430 82'/%3E%3Cpath d='M-10 106C75 52 135 128 215 76S350 26 430 60'/%3E%3Cpath d='M-10 84C78 36 138 106 215 56S350 12 430 40'/%3E%3Cpath d='M-10 62C80 20 140 86 215 38S350 0 430 20'/%3E%3C/g%3E%3C/svg%3E");
   color-scheme: light dark;
 }
@@ -32,7 +32,7 @@
     --leaf:#1C3A2E; --hover:rgba(143,203,166,.10); --line:#2C4A3C; --gold:#E3B34F; --focus:#BFE3CC;
     --pin:#8FCBA6; --pin-sel:#E3F4E8; --pin-ring:rgba(143,203,166,.4);
     --warn-bg:#3A3216; --warn-line:#7C6624; --badge-bg:#4A3C14; --badge-fg:#F3E5B8;
-    --err:#FF9DA2; --ok:#8FD3A8; --ph1:#2F6F50; --ph2:#4C8C66;
+    --err:#FF9DA2; --ok:#8FD3A8; --done:#7FC4D8; --badge2-bg:#1B4452; --badge2-fg:#CDEAF3; --ph1:#2F6F50; --ph2:#4C8C66;
     --contour:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 170' preserveAspectRatio='xMaxYMid slice'%3E%3Cg fill='none' stroke='rgb(143,203,166)' stroke-opacity='.16' stroke-width='1.1'%3E%3Cpath d='M-10 150C70 90 130 175 215 120S350 60 430 105'/%3E%3Cpath d='M-10 128C70 70 135 150 215 98S350 42 430 82'/%3E%3Cpath d='M-10 106C75 52 135 128 215 76S350 26 430 60'/%3E%3Cpath d='M-10 84C78 36 138 106 215 56S350 12 430 40'/%3E%3Cpath d='M-10 62C80 20 140 86 215 38S350 0 430 20'/%3E%3C/g%3E%3C/svg%3E");
   }
 }
@@ -128,7 +128,8 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 /* pins em forma de folha */
 .pin{background:none;border:0;--pin-c:var(--pin)}
 .pin.sel{--pin-c:var(--pin-sel)}
-.pin.feito{--pin-c:var(--gold)}
+.pin.marcado{--pin-c:var(--gold)}
+.pin.avaliado{--pin-c:var(--done)}
 .pin span{
   display:block;width:22px;height:22px;margin:6px;
   border:2px solid #fff;border-radius:0 100% 0 100%;
@@ -138,6 +139,33 @@ textarea::placeholder{color:var(--muted);opacity:.8}
   transition:transform .15s;
 }
 .pin.sel span{transform:rotate(45deg) scale(1.3);box-shadow:0 0 0 3px var(--pin-ring),0 2px 6px rgba(0,0,0,.35)}
+
+/* etapas do detalhe */
+.etapa{margin-top:26px;padding-top:22px;border-top:1px solid var(--line)}
+.etapa form{margin-top:0}
+.et-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.et-head h3{font-family:'Literata',Georgia,serif;font-size:1.15rem;margin:0}
+.et-num{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--btn-bg);color:var(--btn-fg);font-weight:700;font-size:.85rem}
+.etapa.bloq .et-num{background:none;border:1.5px solid var(--line);color:var(--muted)}
+.etapa.bloq h3{color:var(--muted)}
+.dica{color:var(--muted);font-size:.92rem;margin:0 0 14px}
+.resumo{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:var(--leaf)}
+.resumo strong{display:block}
+.resumo small{display:block;color:var(--muted);margin-top:2px}
+.ico-ok{flex:none;width:22px;height:22px;margin-top:1px;fill:none;stroke:var(--accent);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.linkbtn{border:0;background:none;color:var(--accent);font-weight:600;padding:10px 0 0;cursor:pointer;text-decoration:underline}
+.cat{padding:12px 0;border-bottom:1px dashed var(--line)}
+.cat:first-child{padding-top:0}
+.cat-top{display:flex;align-items:center;gap:8px}
+.cat-top svg{width:20px;height:20px;fill:none;stroke:var(--accent);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.cat-top b{font-weight:600}
+.cat-top .val{margin-left:auto;color:var(--muted);font-size:.9rem;font-variant-numeric:tabular-nums}
+.cat small{display:block;color:var(--muted);margin:1px 0 6px 28px;font-size:.88rem}
+.cat .star svg{width:32px;height:32px}
+.media{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:6px 0}
+.media .n{font-family:'Literata',Georgia,serif;font-weight:700;font-size:2.4rem;line-height:1;color:var(--title);font-variant-numeric:tabular-nums}
+.media .f{color:var(--muted);font-size:.92rem}
+.badge.done{color:var(--badge2-fg);background:var(--badge2-bg)}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -164,6 +192,21 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 (function(){
   "use strict";
 
+  /* ---------- configuração do fluxo ---------- */
+  // false: as estrelas liberam assim que o dia é marcado (bom para testar).
+  // true: só liberam depois do dia/hora marcados.
+  const LIBERAR_NOTA_SO_APOS_A_DATA = false;
+
+  // Categorias da avaliação. Para ADICIONAR uma, crie também a coluna no banco (ver schema.sql).
+  const CATEGORIAS = [
+    { id: "musica", rotulo: "Música", dica: "repertório e volume",
+      icone: '<path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>' },
+    { id: "espaco", rotulo: "Espaço", dica: "ambiente e conforto",
+      icone: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>' },
+    { id: "comida", rotulo: "Comida", dica: "sabor e apresentação",
+      icone: '<path d="M7 3v18"/><path d="M4 3v5a3 3 0 006 0V3"/><path d="M17 3c-2 2-3 5-3 8h3v10"/>' },
+  ];
+
   /* ---------- utilidades ---------- */
   const $ = (s, el=document) => el.querySelector(s);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -173,10 +216,28 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     catch{ return ""; }
   };
   const reduzMovimento = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const CHAVE = "visitas-enviadas";
-  const lerEnviadas = () => { try{ return JSON.parse(localStorage.getItem(CHAVE) || "{}"); }catch{ return {}; } };
-  const gravarEnviada = (id, v) => { try{ const d = lerEnviadas(); d[id] = v; localStorage.setItem(CHAVE, JSON.stringify(d)); }catch{} };
   const agoraLocal = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,16); };
+  const novoId = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+    : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const r = Math.random()*16|0; return (c === "x" ? r : (r&3|8)).toString(16); });
+  const fmtDataLonga = iso => new Date(iso).toLocaleString("pt-BR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+  const fmtDataCurta = iso => new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const fmtNum = n => (Math.round(n * 10) / 10).toFixed(1).replace(".", ",");
+  const valores = notas => CATEGORIAS.map(c => notas[c.id]).filter(v => v !== null && v !== undefined);
+  const mediaDe = notas => { const v = valores(notas); return v.length ? v.reduce((a,b) => a+b, 0) / v.length : null; };
+
+  /* ---------- memória local (só neste aparelho) ---------- */
+  // Guarda o que já foi marcado/avaliado para destravar a etapa 2 e mostrar os selos.
+  // O banco é insert-only: o navegador não consegue ler de volta o que enviou.
+  const CHAVE = "mapa-estado-v2";
+  let memoria = {};
+  if(new URLSearchParams(location.search).has("reset")){   // ?reset limpa o teste neste aparelho
+    try{ localStorage.removeItem(CHAVE); }catch{}
+    history.replaceState(null, "", location.pathname);
+  }
+  const lerTudo = () => { try{ return JSON.parse(localStorage.getItem(CHAVE) || "{}"); }catch{ return memoria; } };
+  const gravarTudo = d => { memoria = d; try{ localStorage.setItem(CHAVE, JSON.stringify(d)); }catch{} };
+  const estadoDe = id => lerTudo()[id] || {};
+  const salvarEstado = (id, parte) => { const d = lerTudo(); d[id] = { ...(d[id] || {}), ...parte }; gravarTudo(d); };
 
   /* ---------- Supabase ---------- */
   const configurado = !String(CONFIG.SUPABASE_URL).includes("SEU-PROJETO") && !String(CONFIG.SUPABASE_ANON_KEY).includes("SUA-ANON");
@@ -190,8 +251,9 @@ textarea::placeholder{color:var(--muted);opacity:.8}
   $("#titulo").textContent = CONFIG.NOME ? `Onde a gente vai, ${CONFIG.NOME}?` : "Onde a gente vai?";
   document.title = "Onde a gente vai?";
 
-  /* ---------- estado ---------- */
-  const state = { sel: null, nota: null };
+  /* ---------- estado da tela ---------- */
+  const vazias = () => Object.fromEntries(CATEGORIAS.map(c => [c.id, null]));
+  const state = { sel: null, notas: vazias(), alterandoData: false, refazendoNota: false };
   const porId = Object.fromEntries(RESTAURANTES.map(r => [r.id, r]));
   const marcadores = {};
 
@@ -206,8 +268,9 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 
   function atualizarPin(id){
     const m = marcadores[id]; if(!m) return;
-    const feito = !!lerEnviadas()[id];
-    m.setIcon(icone((state.sel === id ? "sel " : "") + (feito ? "feito" : "")));
+    const e = estadoDe(id);
+    const cls = [state.sel === id ? "sel" : "", e.avaliado ? "avaliado" : (e.marcado ? "marcado" : "")].join(" ").trim();
+    m.setIcon(icone(cls));
   }
 
   RESTAURANTES.forEach(r => {
@@ -245,32 +308,104 @@ textarea::placeholder{color:var(--muted);opacity:.8}
   }
 
   /* ---------- lista ---------- */
+  function selo(e){
+    if(e.avaliado) return `<span class="badge done">★ ${fmtNum(e.avaliado.media)}</span>`;
+    if(e.marcado)  return `<span class="badge">Marcado ${fmtDataCurta(e.marcado.iso)}</span>`;
+    return "";
+  }
   function mostrarLista(){
-    const enviadas = lerEnviadas();
     const vista = $("#vista");
     vista.innerHTML = `<div class="lista">${RESTAURANTES.map(r => `
       <button type="button" class="item" data-id="${esc(r.id)}">
         ${imgOuPlaceholder(r, "thumb")}
         <span class="txt"><strong>${esc(r.nome)}</strong><small>${esc(r.bairro)}</small></span>
-        ${enviadas[r.id] ? '<span class="badge">Enviado</span>' : ""}
+        ${selo(estadoDe(r.id))}
       </button>`).join("")}</div>`;
     vista.querySelectorAll(".item").forEach(b => b.addEventListener("click", () => abrir(b.dataset.id)));
     ligarFallbackImg(vista);
   }
 
-  /* ---------- detalhe + formulário ---------- */
+  /* ---------- detalhe: etapa 1 (marcar) e etapa 2 (avaliar) ---------- */
   const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>';
+  const CHECK = '<svg class="ico-ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
-  function abrir(id){
-    const r = porId[id]; if(!r) return;
-    const anterior = state.sel;
-    state.sel = id; state.nota = null;
-    $(".app").classList.add("detalhe");
-    map.invalidateSize({ animate: false });
-    if(anterior) atualizarPin(anterior);
-    atualizarPin(id);
+  function estrelas(c){
+    return `<div class="stars" role="radiogroup" aria-label="Nota de ${c.rotulo}">
+      ${[1,2,3,4,5].map(v => `<button type="button" class="star" role="radio" aria-checked="false" aria-label="${c.rotulo}: ${v} ${v===1?'estrela':'estrelas'}" data-cat="${c.id}" data-v="${v}">${STAR}</button>`).join("")}
+      <button type="button" class="zero" role="radio" aria-checked="false" aria-label="${c.rotulo}: nota zero" data-cat="${c.id}" data-v="0">Zero</button>
+    </div>`;
+  }
 
+  function etapa1(e){
+    const m = e.marcado;
+    if(m && !state.alterandoData){
+      return `<div class="resumo">${CHECK}<div>
+          <strong>Marcado para ${esc(fmtDataLonga(m.iso))}</strong>
+          ${m.recado ? `<small>“${esc(m.recado)}”</small>` : ""}
+          ${e.avaliado ? "" : `<small>Depois de ir, volte aqui e avalie.</small>`}
+        </div></div>
+        <button type="button" class="linkbtn" id="alterarData">Marcar outro dia</button>`;
+    }
+    return `<form id="formMarcar" novalidate>
+        <div>
+          <label class="lbl" for="quando">Quando vamos?</label>
+          <input type="datetime-local" id="quando" min="${agoraLocal()}">
+        </div>
+        <div>
+          <label class="lbl" for="recado">Recado (opcional)</label>
+          <textarea id="recado" maxlength="500" placeholder="Ex.: prefiro mesa na varanda"></textarea>
+        </div>
+        <p class="msg" id="msg1" role="status" aria-live="polite"></p>
+        <button class="enviar" id="btnMarcar" type="submit">Marcar este dia</button>
+      </form>`;
+  }
+
+  function etapa2(e){
+    const m = e.marcado;
+    if(!m){
+      return { bloq: true, html: `<p class="dica">Disponível depois de marcar o dia. Volte aqui depois de ir para dar as notas.</p>` };
+    }
+    if(LIBERAR_NOTA_SO_APOS_A_DATA && new Date(m.iso) > new Date()){
+      return { bloq: true, html: `<p class="dica">Libera depois do dia marcado (${esc(fmtDataLonga(m.iso))}).</p>` };
+    }
+    if(e.avaliado && !state.refazendoNota){
+      const a = e.avaliado;
+      return { bloq: false, html: `
+        <div class="resumo">${CHECK}<div><strong>Avaliação enviada</strong>
+          <small>${CATEGORIAS.map(c => `${c.rotulo} ${a[c.id] === null || a[c.id] === undefined ? "—" : a[c.id]}`).join(" · ")}</small></div></div>
+        <div class="media"><span class="n">${fmtNum(a.media)}</span><span class="f">nota média</span></div>
+        <button type="button" class="linkbtn" id="refazer">Refazer avaliação</button>` };
+    }
+    return { bloq: false, html: `
+      <form id="formAvaliar" novalidate>
+        <p class="dica">Toque nas estrelas. Toque de novo para limpar (ex.: lugar sem música).</p>
+        <div>
+          ${CATEGORIAS.map(c => `
+            <div class="cat" data-box="${c.id}">
+              <div class="cat-top">
+                <svg viewBox="0 0 24 24" aria-hidden="true">${c.icone}</svg>
+                <b>${c.rotulo}</b>
+                <span class="val" id="val-${c.id}">—</span>
+              </div>
+              <small>${c.dica}</small>
+              ${estrelas(c)}
+            </div>`).join("")}
+        </div>
+        <div class="media" aria-live="polite"><span class="n" id="mediaN">—</span><span class="f" id="mediaF">Dê nota a pelo menos uma categoria.</span></div>
+        <div>
+          <label class="lbl" for="comoFoi">Como foi? (opcional)</label>
+          <textarea id="comoFoi" maxlength="500" placeholder="Ex.: voltaria pela sobremesa"></textarea>
+        </div>
+        <p class="msg" id="msg2" role="status" aria-live="polite"></p>
+        <button class="enviar" id="btnAvaliar" type="submit">Enviar avaliação</button>
+      </form>` };
+  }
+
+  function renderDetalhe(){
+    const r = porId[state.sel];
+    const e = estadoDe(r.id);
     const link = urlSegura(r.link);
+    const e2 = etapa2(e);
     $("#vista").innerHTML = `
       <section class="detalhe">
         <button type="button" class="voltar" id="voltar">← Todos os restaurantes</button>
@@ -279,97 +414,130 @@ textarea::placeholder{color:var(--muted);opacity:.8}
         <p class="bairro">${esc(r.bairro)}</p>
         ${link ? `<a class="site" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Ver no ${/instagram\.com/.test(link) ? "Instagram" : "site"}</a>` : ""}
 
-        <form id="form" novalidate>
-          <fieldset>
-            <legend id="lgNota">Sua nota</legend>
-            <div class="stars" role="radiogroup" aria-labelledby="lgNota">
-              ${[1,2,3,4,5].map(v => `<button type="button" class="star" role="radio" aria-checked="false" aria-label="${v} ${v===1?'estrela':'estrelas'}" data-v="${v}">${STAR}</button>`).join("")}
-              <button type="button" class="zero" role="radio" aria-checked="false" aria-label="Nota zero" data-v="0">Zero</button>
-            </div>
-            <p class="notatxt" id="notaTxt" aria-live="polite">Toque de novo na nota para limpar.</p>
-          </fieldset>
+        <section class="etapa">
+          <div class="et-head"><span class="et-num">1</span><h3>Marcar o dia</h3></div>
+          ${etapa1(e)}
+        </section>
 
-          <div>
-            <label class="lbl" for="quando">Quando vamos?</label>
-            <input type="datetime-local" id="quando" min="${agoraLocal()}">
-          </div>
-
-          <div>
-            <label class="lbl" for="comentario">Recado (opcional)</label>
-            <textarea id="comentario" maxlength="500" placeholder="Ex.: prefiro mesa na varanda"></textarea>
-          </div>
-
-          <p class="msg" id="msg" role="status" aria-live="polite"></p>
-          <button class="enviar" id="enviar" type="submit">Enviar resposta</button>
-        </form>
+        <section class="etapa${e2.bloq ? " bloq" : ""}">
+          <div class="et-head"><span class="et-num">2</span><h3>Avaliar</h3></div>
+          ${e2.html}
+        </section>
       </section>`;
 
     const vista = $("#vista");
     ligarFallbackImg(vista);
-    $("#voltar").addEventListener("click", () => {
-      const antigo = state.sel; state.sel = null; atualizarPin(antigo);
-      $(".app").classList.remove("detalhe");
-      map.invalidateSize({ animate: false });
-      mostrarLista();
-      ajustarMapa();
-    });
-    vista.querySelectorAll("[data-v]").forEach(b => b.addEventListener("click", () => {
-      const v = Number(b.dataset.v);
-      setNota(state.nota === v ? null : v);
-    }));
-    $("#form").addEventListener("submit", enviar);
+    $("#voltar").addEventListener("click", voltar);
 
-    $("#painel").scrollTo({ top: 0 });
+    const fm = $("#formMarcar");       if(fm) fm.addEventListener("submit", marcar);
+    const ad = $("#alterarData");      if(ad) ad.addEventListener("click", () => { state.alterandoData = true; renderDetalhe(); });
+    const rf = $("#refazer");          if(rf) rf.addEventListener("click", () => { state.refazendoNota = true; state.notas = vazias(); renderDetalhe(); });
+    const fa = $("#formAvaliar");
+    if(fa){
+      fa.addEventListener("submit", avaliar);
+      fa.querySelectorAll("[data-cat]").forEach(b => b.addEventListener("click", () => {
+        const cat = b.dataset.cat, v = Number(b.dataset.v);
+        setNota(cat, state.notas[cat] === v ? null : v);
+      }));
+    }
+  }
+
+  function setNota(cat, v){
+    state.notas[cat] = v;
+    const box = $(`[data-box="${cat}"]`);
+    box.querySelectorAll(".star").forEach(s => {
+      s.classList.toggle("on", v !== null && v > 0 && Number(s.dataset.v) <= v);
+      s.setAttribute("aria-checked", String(v !== null && Number(s.dataset.v) === v));
+    });
+    box.querySelector(".zero").setAttribute("aria-checked", String(v === 0));
+    $(`#val-${cat}`).textContent = v === null ? "—" : `${v}/5`;
+
+    const vals = valores(state.notas), m = mediaDe(state.notas);
+    $("#mediaN").textContent = m === null ? "—" : fmtNum(m);
+    $("#mediaF").textContent = m === null ? "Dê nota a pelo menos uma categoria."
+      : vals.length === 1 ? "nota média (só uma categoria avaliada)"
+      : `nota média = (${vals.join(" + ")}) ÷ ${vals.length}`;
+  }
+
+  function mensagem(id, texto, tipo){
+    const m = $(id); if(!m) return;
+    m.textContent = texto; m.className = "msg " + (tipo || "");
+  }
+
+  async function marcar(ev){
+    ev.preventDefault();
+    const val = $("#quando").value;
+    if(!val){ mensagem("#msg1", "Escolha o dia e a hora.", "erro"); return; }
+    const d = new Date(val);
+    if(isNaN(d)){ mensagem("#msg1", "Data inválida. Escolha de novo.", "erro"); return; }
+    if(!sb){ mensagem("#msg1", "Supabase não configurado. Preencha config.js.", "erro"); return; }
+
+    const btn = $("#btnMarcar");
+    btn.disabled = true; btn.textContent = "Marcando…"; mensagem("#msg1", "");
+
+    const id = novoId();
+    const recado = $("#recado").value.trim();
+    const { error } = await sb.from("marcacoes").insert({
+      id, restaurante_id: state.sel, data_hora: d.toISOString(), comentario: recado || null,
+    });
+    if(error){
+      console.error(error);
+      btn.disabled = false; btn.textContent = "Marcar este dia";
+      mensagem("#msg1", "Não foi possível marcar. Verifique a conexão e tente de novo.", "erro");
+      return;
+    }
+    salvarEstado(state.sel, { marcado: { id, iso: d.toISOString(), recado } });
+    state.alterandoData = false;
+    atualizarPin(state.sel);
+    renderDetalhe();
+  }
+
+  async function avaliar(ev){
+    ev.preventDefault();
+    if(valores(state.notas).length === 0){ mensagem("#msg2", "Dê nota a pelo menos uma categoria.", "erro"); return; }
+    if(!sb){ mensagem("#msg2", "Supabase não configurado. Preencha config.js.", "erro"); return; }
+
+    const btn = $("#btnAvaliar");
+    btn.disabled = true; btn.textContent = "Enviando…"; mensagem("#msg2", "");
+
+    const e = estadoDe(state.sel);
+    const payload = { restaurante_id: state.sel, marcacao_id: e.marcado ? e.marcado.id : null, comentario: $("#comoFoi").value.trim() || null };
+    CATEGORIAS.forEach(c => { payload[c.id] = state.notas[c.id]; });
+
+    const { error } = await sb.from("avaliacoes").insert(payload);
+    if(error){
+      console.error(error);
+      btn.disabled = false; btn.textContent = "Enviar avaliação";
+      mensagem("#msg2", "Não foi possível enviar. Verifique a conexão e tente de novo.", "erro");
+      return;
+    }
+    const avaliado = { media: mediaDe(state.notas) };
+    CATEGORIAS.forEach(c => { avaliado[c.id] = state.notas[c.id]; });
+    salvarEstado(state.sel, { avaliado });
+    state.refazendoNota = false;
+    atualizarPin(state.sel);
+    renderDetalhe();
+  }
+
+  function abrir(id){
+    const r = porId[id]; if(!r) return;
+    const anterior = state.sel;
+    state.sel = id; state.notas = vazias(); state.alterandoData = false; state.refazendoNota = false;
+    $(".app").classList.add("detalhe");
+    map.invalidateSize({ animate: false });
+    if(anterior) atualizarPin(anterior);
+    atualizarPin(id);
+    renderDetalhe();
+    $("#painel").scrollTop = 0;
     map.flyTo([r.lat, r.lng], Math.max(map.getZoom(), 15), { animate: !reduzMovimento, duration: .6 });
   }
 
-  function setNota(v){
-    state.nota = v;
-    document.querySelectorAll(".star").forEach(s => {
-      const on = v !== null && v > 0 && Number(s.dataset.v) <= v;
-      s.classList.toggle("on", on);
-      s.setAttribute("aria-checked", String(v !== null && Number(s.dataset.v) === v));
-    });
-    const z = $(".zero"); z.setAttribute("aria-checked", String(v === 0));
-    $("#notaTxt").textContent = v === null ? "Toque de novo na nota para limpar." : `Nota ${v} de 5`;
-  }
-
-  function mensagem(texto, tipo){
-    const m = $("#msg"); m.textContent = texto; m.className = "msg " + (tipo || "");
-  }
-
-  async function enviar(e){
-    e.preventDefault();
-    const quandoVal = $("#quando").value;
-    if(state.nota === null && !quandoVal){ mensagem("Escolha uma nota, uma data ou as duas coisas.", "erro"); return; }
-
-    let quandoISO = null;
-    if(quandoVal){
-      const d = new Date(quandoVal);
-      if(isNaN(d)){ mensagem("Data inválida. Escolha de novo.", "erro"); return; }
-      quandoISO = d.toISOString();
-    }
-    if(!sb){ mensagem("Supabase não configurado. Preencha config.js.", "erro"); return; }
-
-    const btn = $("#enviar");
-    btn.disabled = true; btn.textContent = "Enviando…"; mensagem("");
-
-    const { error } = await sb.from("visitas").insert({
-      restaurante_id: state.sel,
-      nota: state.nota,
-      data_hora: quandoISO,
-      comentario: $("#comentario").value.trim() || null,
-    });
-
-    btn.disabled = false; btn.textContent = "Enviar resposta";
-    if(error){
-      console.error(error);
-      mensagem("Não foi possível enviar. Verifique a conexão e tente de novo.", "erro");
-      return;
-    }
-    gravarEnviada(state.sel, { nota: state.nota, quando: quandoISO });
-    atualizarPin(state.sel);
-    mensagem("Enviado! Já chegou por aqui.", "ok");
+  function voltar(){
+    const antigo = state.sel; state.sel = null; atualizarPin(antigo);
+    $(".app").classList.remove("detalhe");
+    map.invalidateSize({ animate: false });
+    mostrarLista();
+    ajustarMapa();
   }
 
   mostrarLista();
