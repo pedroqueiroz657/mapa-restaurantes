@@ -1,36 +1,62 @@
-// Edite esta lista. Os 3 itens abaixo são só EXEMPLOS: troque pelos reais.
-//
-// id    -> slug único, sem espaço (ex.: "coco-bambu-iracema"). É o que chega no seu banco/notificação.
-// lat/lng -> no Google Maps, clique com o botão direito no local e clique nos números para copiar.
-// foto  -> caminho de uma imagem dentro da pasta /fotos (ex.: "fotos/exemplo.jpg").
-//          Prefira arquivos no próprio repositório: links de Instagram/sites costumam bloquear hotlink.
-// link  -> site, Instagram ou cardápio (opcional).
+// Lista de restaurantes.
+// id      -> slug único (é o que chega no banco/notificação)
+// bairro  -> texto que aparece abaixo do nome (aqui usamos o endereço)
+// lat/lng -> coordenadas do pin (vieram do Bing Maps; confira o pin no mapa)
+// foto    -> caminho dentro de /fotos (ex.: "fotos/casa-bea.jpg"). Vazio = quadrado colorido com a inicial.
+// link    -> Instagram, site ou cardápio
 const RESTAURANTES = [
   {
-    id: "exemplo-1",
-    nome: "Restaurante Exemplo 1",
-    bairro: "Meireles",
-    lat: -3.726,
-    lng: -38.495,
+    id: "casa-bea",
+    nome: "Casa Beá Restaurante",
+    bairro: "Av. Desembargador Moreira, 615",
+    lat: -3.7317,
+    lng: -38.4967,
     foto: "",
-    link: "",
+    link: "https://www.instagram.com/casabearestaurante",
   },
   {
-    id: "exemplo-2",
-    nome: "Restaurante Exemplo 2",
-    bairro: "Praia de Iracema",
-    lat: -3.72,
-    lng: -38.511,
+    id: "nato-confeitaria",
+    nome: "Nato Confeitaria",
+    bairro: "Rua Tibúrcio Cavalcante, 1656",
+    lat: -3.739378,
+    lng: -38.503822,
     foto: "",
-    link: "",
+    link: "https://www.instagram.com/nato.confeitaria",
   },
   {
-    id: "exemplo-3",
-    nome: "Restaurante Exemplo 3",
-    bairro: "Aldeota",
-    lat: -3.737,
-    lng: -38.498,
+    id: "padocaria-saudavel",
+    nome: "Padocaria Saudável",
+    bairro: "Rua Júlio Lima, 685",
+    lat: -3.7954,
+    lng: -38.499298,
     foto: "",
-    link: "",
+    link: "https://www.instagram.com/padocariasaudavel",
+  },
+  {
+    id: "florenca-sem-gluten",
+    nome: "Florença sem glúten",
+    bairro: "Av. Barão de Studart, 2821",
+    lat: -3.74877,
+    lng: -38.510948,
+    foto: "",
+    link: "https://www.instagram.com/florencasemgluten",
+  },
+  {
+    id: "la-dulce-vita",
+    nome: "La Dulce Vita",
+    bairro: "Rua Antonina do Norte, 350",
+    lat: -3.732,
+    lng: -38.553699,
+    foto: "",
+    link: "https://www.instagram.com/ladulcevitaoficial",
+  },
+  {
+    id: "casannas",
+    nome: "Casannas",
+    bairro: "Rua Visconde de Mauá, 2140 · Aldeota",
+    lat: -3.744117,
+    lng: -38.502094,
+    foto: "",
+    link: "https://www.instagram.com/casannas_",
   },
 ];
