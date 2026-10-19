@@ -11,12 +11,21 @@ index.html          página (Leaflet + supabase-js via CDN)
 config.js           URL e chave do Supabase (NÃO sobrescreva ao atualizar)
 restaurantes.js     lista de restaurantes
 fotos/              logos/fotos
-supabase/schema.sql tabelas + RLS + view de resumo
+supabase/schema.sql tabelas (marcacoes, avaliacoes, locais) + RLS + funções + view de resumo
 supabase/functions/avisar-telegram/   aviso opcional no Telegram
 ```
 
 ## Atualizando o banco (versão com duas etapas)
 No Supabase, **SQL Editor > New query**: cole `supabase/schema.sql` e rode. Pode rodar mais de uma vez. A tabela antiga `visitas` deixa de ser usada (apague quando quiser: `drop table if exists public.visitas;`).
+
+## Adicionar um lugar pelo site
+Na lista, o botão **"Adicionar um lugar"** abre um formulário: a pessoa busca o endereço (ou toca no mapa), ajusta o pin arrastando, informa o nome e, se quiser, o endereço e o Instagram/site (`@perfil` já vale). Ao salvar, o lugar vai para a tabela `locais`, aparece para todo mundo e já abre para marcar o dia.
+- Os lugares **fixos** continuam em `restaurantes.js`; os adicionados pelo site vêm do banco (função `locais_publicos()`).
+- A busca usa o Nominatim do OpenStreetMap (gratuito, uso leve). Se estiver fora do ar, dá para tocar no mapa.
+- Sem foto por enquanto: o lugar novo mostra o quadrado colorido com a inicial. Para colocar a logo, suba a imagem em `fotos/` e acrescente o lugar em `restaurantes.js`.
+- **Moderação:** para esconder um lugar indevido, rode no SQL Editor `update public.locais set ativo = false where id = '...';` (ou apague a linha em Table Editor > `locais`).
+- **Proteções:** o banco limita nome/endereço/link, aceita só coordenadas dentro do Ceará e recusa mais de 30 lugares novos por hora. Quem tiver o link pode adicionar lugares, então não divulgue o endereço do site além de vocês dois.
+- Para usar em outro estado ou país, ajuste os limites de `lat`/`lng` na tabela `locais` do `schema.sql`.
 
 ## Data marcada visível para todo mundo
 Ao abrir um restaurante, o site mostra "Marcado para ..." (ou "Foi em ..." se a data já passou), em qualquer aparelho. Para isso o `schema.sql` cria a função `datas_marcadas()`, que devolve só o id, o restaurante e a data/hora da marcação mais recente de cada lugar. O recado e o restante da tabela continuam privados, porque não existe policy de SELECT. Isso significa que **quem tiver o link vê as datas marcadas**. Se a consulta falhar (por exemplo, a função ainda não foi criada), o site usa só o que está salvo no aparelho.
@@ -54,7 +63,7 @@ Atualize os arquivos um a um. Se descompactar um zip por cima da pasta, o `confi
    supabase secrets set TELEGRAM_TOKEN=... TELEGRAM_CHAT_ID=... WEBHOOK_SECRET=uma-string-longa-aleatoria
    supabase functions deploy avisar-telegram --no-verify-jwt
    ```
-3. **Database > Webhooks > Create**, duas vezes: uma para a tabela `marcacoes` e outra para `avaliacoes`. Em ambas: evento `INSERT`, HTTP Request, POST, URL `https://SEU-REF.supabase.co/functions/v1/avisar-telegram`, header `x-webhook-secret` com o mesmo valor do secret.
+3. **Database > Webhooks > Create**, uma vez para cada tabela que quiser acompanhar: `marcacoes`, `avaliacoes` e `locais`. Em ambas: evento `INSERT`, HTTP Request, POST, URL `https://SEU-REF.supabase.co/functions/v1/avisar-telegram`, header `x-webhook-secret` com o mesmo valor do secret.
 
 ## Segurança e escala
 - **A chave publishable/anon é pública**, e tudo bem: a proteção é o RLS. As tabelas só têm policy de `INSERT`, então quem abre o site não lê nem altera nada. Nunca use a secret/`service_role` no front.
