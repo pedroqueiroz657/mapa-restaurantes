@@ -171,6 +171,24 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 .ico-cal{flex:none;width:18px;height:18px;fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
 /* adicionar lugar */
+.barra-lista{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.barra-lista > button{flex:1 1 150px}
+.barra-lista .novo-btn{width:auto;margin-top:0}
+.geo-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border:1.5px solid var(--btn-bg);border-radius:14px;background:var(--btn-bg);color:var(--btn-fg);font-weight:600;cursor:pointer}
+.geo-btn.on{background:none;color:var(--accent);border-color:var(--accent)}
+.geo-btn[disabled]{opacity:.7;cursor:progress}
+@media (hover:hover){.geo-btn:not(.on):not([disabled]):hover{background:var(--btn-bg-hover)}}
+.geo-status{margin:10px 0 0;color:var(--muted);font-size:.9rem}
+.geo-status:empty{display:none}
+.geo-status.erro{color:var(--err)}
+.linkbtn.pequeno{padding:0 0 0 4px;font-size:.9rem}
+.ico-geo{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round}
+.lado{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right}
+.dist{font-weight:600;font-size:.9rem;color:var(--title);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dist-detalhe{display:flex;align-items:center;gap:6px;margin:6px 0 0;color:var(--muted);font-size:.95rem}
+.voce{background:none;border:0}
+.voce span{display:block;width:16px;height:16px;margin:3px;border-radius:50%;background:#2F7FD0;border:3px solid #fff;box-shadow:0 0 0 0 rgba(47,127,208,.45),0 1px 4px rgba(0,0,0,.4);animation:pulso 2.2s ease-out infinite}
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(47,127,208,.45),0 1px 4px rgba(0,0,0,.4)}70%{box-shadow:0 0 0 14px rgba(47,127,208,0),0 1px 4px rgba(0,0,0,.4)}100%{box-shadow:0 0 0 0 rgba(47,127,208,0),0 1px 4px rgba(0,0,0,.4)}}
 .novo-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:18px;padding:12px 16px;border:1.5px dashed var(--accent);border-radius:14px;background:none;color:var(--accent);font-weight:600;cursor:pointer}
 @media (hover:hover){.novo-btn:hover{background:var(--hover)}}
 .ico-mais{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
@@ -203,7 +221,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 .status-local{margin:6px 0 22px;padding:9px 12px;border-radius:10px;background:var(--leaf);color:var(--muted);font-size:.92rem}
 .status-local.ok{color:var(--ink)}
 
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
@@ -375,20 +393,27 @@ textarea::placeholder{color:var(--muted);opacity:.8}
   }
   function mostrarLista(){
     const vista = $("#vista");
-    vista.innerHTML = `<button type="button" class="novo-btn" id="btnNovoLocal">${MAIS} Adicionar um lugar</button>
-    <div class="lista">${lista.map(r => `
+    vista.innerHTML = `<div class="barra-lista">
+        <button type="button" class="geo-btn" id="btnPerto">${GEO}<span id="btnPertoTxt">Perto de mim</span></button>
+        <button type="button" class="novo-btn" id="btnNovoLocal">${MAIS} Adicionar um lugar</button>
+      </div>
+      <p class="geo-status" id="geoStatus" role="status" aria-live="polite"></p>
+      <div class="lista">${listaOrdenada().map(({ r, d }) => `
       <button type="button" class="item" data-id="${esc(r.id)}">
         ${imgOuPlaceholder(r, "thumb")}
         <span class="txt"><strong>${esc(r.nome)}</strong><small>${esc(r.bairro)}</small></span>
-        ${selo(estadoEfetivo(r.id))}
+        <span class="lado">${d === null ? "" : `<span class="dist" title="Distância em linha reta">${fmtDist(d)}</span>`}${selo(estadoEfetivo(r.id))}</span>
       </button>`).join("")}</div>`;
     vista.querySelectorAll(".item").forEach(b => b.addEventListener("click", () => abrir(b.dataset.id)));
     $("#btnNovoLocal").addEventListener("click", () => abrirNovo());
+    $("#btnPerto").addEventListener("click", alternarGeo);
+    renderGeoStatus();
     ligarFallbackImg(vista);
   }
 
   /* ---------- detalhe: etapa 1 (marcar) e etapa 2 (avaliar) ---------- */
   const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>';
+  const GEO = '<svg class="ico-geo" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>';
   const MAIS = '<svg class="ico-mais" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
   const CAMERA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
   const LAPIS = '<svg class="ico-lapis" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
@@ -478,6 +503,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
         ${imgOuPlaceholder(r, "capa")}
         <h2>${esc(r.nome)}</h2>
         ${r.bairro ? `<p class="bairro">${esc(r.bairro)}</p>` : ""}
+        ${geo.pos ? `<p class="dist-detalhe">${GEO}<span>${fmtDist(distanciaM(geo.pos, r))} de você, em linha reta</span></p>` : ""}
         ${e.marcado ? `<p class="chip-data">${CAL}<span>${rotuloData(e.marcado.iso)} ${esc(fmtDataLonga(e.marcado.iso))}</span></p>` : ""}
         ${link ? `<a class="site" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Ver no ${/instagram\.com/.test(link) ? "Instagram" : "site"}</a>` : ""}
         <p class="editar-linha"><button type="button" class="linkbtn editar" id="btnEditar">${LAPIS} Editar informações</button></p>
@@ -1005,6 +1031,97 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     novo.ativo = false; novo.editId = null; limparPinNovo(); revelarMarcadores(); limparFotoNova();
     $(".app").classList.remove("novo");
     abrir(id);   // volta para o lugar (novo ou editado)
+  }
+
+  /* ---------- localização do usuário: só quando ele toca em "Perto de mim" ---------- */
+  // A posição fica apenas na memória desta página. Não é enviada, gravada nem consultada em nenhum serviço.
+  const geo = { pos: null, buscando: false, msg: "", marcador: null };
+  const rad = x => x * Math.PI / 180;
+
+  // distância em linha reta (fórmula de haversine), em metros
+  function distanciaM(a, b){
+    const R = 6371000, dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+  function fmtDist(m){
+    if(m < 1000){
+      const r = Math.round(m / 10) * 10;
+      if(r === 0) return "menos de 10 m";
+      if(r < 1000) return `${r} m`;
+    }
+    const km = m / 1000;
+    return `${km >= 100 ? Math.round(km) : (Math.round(km * 10) / 10).toFixed(1).replace(".", ",")} km`;
+  }
+  // lista com a distância de cada lugar; do mais perto ao mais longe quando há posição
+  function listaOrdenada(){
+    if(!geo.pos) return lista.map(r => ({ r, d: null }));
+    return lista.map(r => ({ r, d: distanciaM(geo.pos, r) })).sort((x, y) => x.d - y.d);
+  }
+
+  function renderGeoStatus(){
+    const btn = $("#btnPerto"), st = $("#geoStatus");
+    if(btn){
+      btn.disabled = geo.buscando;
+      btn.classList.toggle("on", !!geo.pos);
+      $("#btnPertoTxt").textContent = geo.buscando ? "Localizando…" : geo.pos ? "Ordem original" : "Perto de mim";
+    }
+    if(!st) return;
+    st.classList.toggle("erro", !!geo.msg);
+    if(geo.msg){ st.textContent = geo.msg; return; }
+    if(geo.buscando){ st.textContent = "Procurando a sua posição…"; return; }
+    if(!geo.pos){ st.textContent = ""; return; }
+    const hora = geo.pos.quando.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const prec = geo.pos.precisao > 1000 ? `±${fmtDist(geo.pos.precisao)}, localização aproximada` : `±${fmtDist(geo.pos.precisao)}`;
+    st.innerHTML = `Do mais perto ao mais longe, em linha reta. Posição de ${esc(hora)} (${esc(prec)}). <button type="button" class="linkbtn pequeno" id="geoAtualizar">Atualizar</button>`;
+    $("#geoAtualizar").addEventListener("click", () => pedirPosicao(true));
+  }
+
+  function desenharVoce(){
+    if(geo.marcador) map.removeLayer(geo.marcador);
+    geo.marcador = L.marker([geo.pos.lat, geo.pos.lng], {
+      icon: L.divIcon({ className: "voce", html: "<span></span>", iconSize: [22, 22], iconAnchor: [11, 11] }),
+      interactive: false, keyboard: false, zIndexOffset: -500, title: "Você está aqui",
+    }).addTo(map);
+  }
+
+  // mostra a pessoa e os 3 lugares mais próximos; se ela estiver longe (>30 km), mostra todos os lugares
+  function enquadrarPerto(){
+    const ord = listaOrdenada();
+    if(!ord.length || ord[0].d > 30000){ ajustarMapa(); return; }
+    const pts = [[geo.pos.lat, geo.pos.lng], ...ord.slice(0, 3).map(x => [x.r.lat, x.r.lng])];
+    map.fitBounds(L.latLngBounds(pts), { padding: [40, 40], maxZoom: 15 });
+  }
+
+  function limparGeo(){
+    geo.pos = null; geo.msg = ""; geo.buscando = false;
+    if(geo.marcador){ map.removeLayer(geo.marcador); geo.marcador = null; }
+  }
+
+  function alternarGeo(){
+    if(geo.buscando) return;
+    if(geo.pos){ limparGeo(); mostrarLista(); return; }   // "Ordem original": esquece a posição
+    pedirPosicao(false);
+  }
+
+  function pedirPosicao(atualizar){
+    if(geo.buscando) return;
+    if(!("geolocation" in navigator)){ geo.msg = "Seu navegador não oferece localização."; renderGeoStatus(); return; }
+    if(window.isSecureContext === false){ geo.msg = "A localização só funciona em conexão segura (https)."; renderGeoStatus(); return; }
+    geo.buscando = true; geo.msg = ""; renderGeoStatus();
+    navigator.geolocation.getCurrentPosition(p => {
+      geo.buscando = false; geo.msg = "";
+      geo.pos = { lat: p.coords.latitude, lng: p.coords.longitude, precisao: p.coords.accuracy || 0, quando: new Date(p.timestamp || Date.now()) };
+      desenharVoce();
+      if(state.sel === null && !novo.ativo){ mostrarLista(); enquadrarPerto(); }
+      else renderGeoStatus();
+    }, e => {
+      geo.buscando = false;
+      geo.msg = e && e.code === 1 ? "Permissão negada. Para usar, libere a localização deste site nas configurações do navegador (cadeado ao lado do endereço) e toque de novo."
+              : e && e.code === 3 ? "Demorou demais para localizar. Tente de novo."
+              : "Não consegui descobrir onde você está. Tente em um lugar com melhor sinal.";
+      renderGeoStatus();
+    }, { enableHighAccuracy: true, timeout: 12000, maximumAge: atualizar ? 0 : 60000 });
   }
 
   async function carregarLocais(){

@@ -29,6 +29,20 @@ Na lista, o botão **"Adicionar um lugar"** abre um formulário: a pessoa busca 
 - **Proteções:** o banco limita nome/endereço/link, aceita só coordenadas dentro do Ceará e recusa mais de 30 lugares novos por hora. Quem tiver o link pode adicionar lugares, então não divulgue o endereço do site além de vocês dois.
 - Para usar em outro estado ou país, ajuste os limites de `lat`/`lng` na tabela `locais` do `schema.sql`.
 
+## Perto de mim (ordenar por distância)
+Na lista, o botão **"Perto de mim"** pede a localização do aparelho **uma vez**, no momento do toque, e então:
+- ordena os lugares do mais perto ao mais longe e mostra a distância em cada linha (por exemplo "850 m" ou "1,2 km") e também ao abrir um lugar;
+- mostra a posição da pessoa no mapa (ponto azul) e enquadra a pessoa com os 3 lugares mais próximos;
+- **"Atualizar"** pede uma posição nova; **"Ordem original"** volta à lista normal e **esquece** a posição.
+
+**Privacidade:** o site nunca pede a localização sozinho (só quando a pessoa toca no botão), não acompanha o deslocamento, não envia a posição para o Supabase nem para nenhum serviço, e não a guarda (só fica na memória da página; recarregar a página apaga). O navegador sempre pede permissão.
+
+**Limites:**
+- A distância é **em linha reta**, não pelo trajeto. A pé ou de carro costuma ser maior (rios, avenidas, retornos).
+- No computador a localização é aproximada (Wi-Fi/IP) e pode errar de centenas de metros a alguns quilômetros; o site avisa quando a precisão é pior que 1 km. No celular, com GPS, costuma ser de 5 a 50 m.
+- Se a permissão for negada, o site explica como liberar (cadeado ao lado do endereço) e continua na ordem normal. Só funciona em `https`, o que o GitHub Pages já usa.
+- Se a pessoa estiver a mais de 30 km, o mapa mostra todos os lugares em vez de enquadrar a pessoa.
+
 ## Fotos dos lugares
 Tanto ao **adicionar** quanto ao **editar** um lugar dá para escolher uma foto (câmera ou galeria do celular).
 - **No navegador:** a foto é reduzida e convertida para JPEG antes de enviar, em duas versões: uma pequena (~240 px, usada na lista) e uma maior (~1000 px, usada no detalhe). Isso deixa o site rápido, economiza espaço e remove os metadados da foto original, inclusive a localização GPS.
