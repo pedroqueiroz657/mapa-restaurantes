@@ -185,6 +185,14 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 .linkbtn.editar{display:inline-flex;align-items:center;gap:6px;padding:8px 0 0;font-size:.92rem;text-decoration:none}
 .linkbtn.editar:hover{text-decoration:underline}
 .ico-lapis{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.capa.foto-real{object-fit:cover}
+.foto-campo{display:block}
+.foto-linha{display:flex;align-items:center;gap:14px}
+.foto-prev{flex:none;display:grid;place-items:center;width:84px;height:84px;overflow:hidden;border-radius:10px;border:1.5px dashed var(--line);background:var(--leaf)}
+.foto-prev img{width:100%;height:100%;object-fit:cover;display:block}
+.foto-prev svg{width:32px;height:32px;fill:none;stroke:var(--muted);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.foto-acoes{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.foto-acoes .linkbtn{padding-top:6px}
 .res-tit{margin:12px 0 6px;font-weight:600;font-size:.95rem}
 .res-lista{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:8px}
 .res{display:block;width:100%;text-align:left;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer}
@@ -296,7 +304,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
   /* ---------- estado da tela ---------- */
   const vazias = () => Object.fromEntries(CATEGORIAS.map(c => [c.id, null]));
   const state = { sel: null, notas: vazias(), alterandoData: false, refazendoNota: false };
-  const novo = { ativo: false, lat: null, lng: null, marcador: null, autoNome: null, autoEnd: null, editId: null, oculto: null };   // modo "adicionar um lugar"
+  const novo = { ativo: false, lat: null, lng: null, marcador: null, autoNome: null, autoEnd: null, editId: null, oculto: null, foto: null };   // modo "adicionar um lugar"
   const lista = RESTAURANTES.slice();   // fixos (restaurantes.js) + adicionados pelo site (tabela locais)
   const porId = Object.fromEntries(lista.map(r => [r.id, r]));
   const marcadores = {};
@@ -334,11 +342,18 @@ textarea::placeholder{color:var(--muted);opacity:.8}
   if(window.ResizeObserver){ new ResizeObserver(() => map.invalidateSize()).observe($("#map")); }
 
   /* ---------- imagens ---------- */
+  // foto enviada pelo site vem do Storage (-g grande, -p pequena); as fixas vêm do caminho em restaurantes.js
+  function fotoSrc(r, tam){
+    if(r.fotoId && /^[0-9a-f-]{36}$/.test(r.fotoId) && configurado){
+      return `${String(CONFIG.SUPABASE_URL).replace(/\/$/, "")}/storage/v1/object/public/fotos-lugares/${r.fotoId}-${tam}.jpg`;
+    }
+    return urlSegura(r.foto);
+  }
   function imgOuPlaceholder(r, cls){
-    const src = urlSegura(r.foto);
+    const src = fotoSrc(r, cls === "capa" ? "g" : "p");
     const inicial = esc((r.nome || "?").trim().charAt(0).toUpperCase());
     if(!src) return `<div class="${cls} ph" aria-hidden="true">${inicial}</div>`;
-    return `<img class="${cls}" src="${esc(src)}" alt="${cls === 'capa' ? 'Foto de ' + esc(r.nome) : ''}" loading="lazy" data-fb="${inicial}">`;
+    return `<img class="${cls}${r.fotoId ? " foto-real" : ""}" src="${esc(src)}" alt="${cls === 'capa' ? 'Foto de ' + esc(r.nome) : ''}" loading="lazy" data-fb="${inicial}">`;
   }
   function ligarFallbackImg(raiz){
     raiz.querySelectorAll("img[data-fb]").forEach(img => {
@@ -375,6 +390,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
   /* ---------- detalhe: etapa 1 (marcar) e etapa 2 (avaliar) ---------- */
   const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>';
   const MAIS = '<svg class="ico-mais" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+  const CAMERA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
   const LAPIS = '<svg class="ico-lapis" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
   const CAL = '<svg class="ico-cal" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
   const CHECK = '<svg class="ico-ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
@@ -576,7 +592,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
   function abrir(id){
     const r = porId[id]; if(!r) return;
     const anterior = state.sel;
-    if(novo.ativo){ novo.ativo = false; novo.editId = null; limparPinNovo(); revelarMarcadores(); $(".app").classList.remove("novo"); }
+    if(novo.ativo){ novo.ativo = false; novo.editId = null; limparPinNovo(); revelarMarcadores(); limparFotoNova(); $(".app").classList.remove("novo"); }
     state.sel = id; state.notas = vazias(); state.alterandoData = false; state.refazendoNota = false;
     $(".app").classList.add("detalhe");
     map.invalidateSize({ animate: false });
@@ -672,6 +688,18 @@ textarea::placeholder{color:var(--muted);opacity:.8}
             <label class="lbl" for="nLink">Instagram ou site (opcional)</label>
             <input type="text" id="nLink" maxlength="300" placeholder="@perfil ou https://…" inputmode="url" autocomplete="off" value="${ed ? esc(ed.link) : ""}">
           </div>
+          <div class="foto-campo">
+            <span class="lbl">Foto (opcional)</span>
+            <div class="foto-linha">
+              <div class="foto-prev" id="fotoPrev"></div>
+              <div class="foto-acoes">
+                <button type="button" class="sec" id="btnFoto">Adicionar foto</button>
+                <button type="button" class="linkbtn" id="btnFotoRemover" hidden>Remover</button>
+              </div>
+            </div>
+            <input type="file" id="fotoArq" accept="image/*" hidden>
+            <p class="msg" id="msgFoto" role="status" aria-live="polite"></p>
+          </div>
           <p class="msg" id="msgNovo" role="status" aria-live="polite"></p>
           <button class="enviar" id="btnNovo" type="submit">${ed ? "Salvar alterações" : "Adicionar lugar"}</button>
         </form>
@@ -681,11 +709,15 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     $("#btnBusca").addEventListener("click", buscarEndereco);
     $("#busca").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); buscarEndereco(); } });
     $("#formNovo").addEventListener("submit", salvarNovo);
+    $("#btnFoto").addEventListener("click", () => $("#fotoArq").click());
+    $("#fotoArq").addEventListener("change", escolherFoto);
+    $("#btnFotoRemover").addEventListener("click", () => { limparFotoNova(); mensagem("#msgFoto", ""); atualizarCampoFoto(); });
+    atualizarCampoFoto();
   }
 
   function abrirNovo(editId){
     if(state.sel){ const a = state.sel; state.sel = null; atualizarPin(a); }
-    limparPinNovo(); revelarMarcadores();
+    limparPinNovo(); revelarMarcadores(); limparFotoNova();
     novo.ativo = true; novo.editId = editId || null; novo.autoNome = null; novo.autoEnd = null;
     novo.lat = null; novo.lng = null;
     const r = novo.editId ? porId[novo.editId] : null;
@@ -704,7 +736,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 
   function sairNovo(){
     const id = novo.editId;
-    novo.ativo = false; novo.editId = null; limparPinNovo(); revelarMarcadores();
+    novo.ativo = false; novo.editId = null; limparPinNovo(); revelarMarcadores(); limparFotoNova();
     $(".app").classList.remove("novo");
     map.invalidateSize({ animate: false });
     if(id){ abrir(id); return; }   // cancelou uma edição: volta para o lugar
@@ -828,6 +860,88 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     }
   }
 
+  /* ---------- foto do lugar: comprimir no navegador e enviar ao Storage ---------- */
+  const FOTO = { grande: 1000, pequena: 240, maxBytes: 480000 };   // lados máximos em px; o bucket aceita até 500 KB por arquivo
+
+  function carregarImagem(file){
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("imagem ilegível")); };
+      img.src = url;
+    });
+  }
+
+  // redimensiona (sem ampliar) e gera um JPEG; baixa a qualidade até caber no limite.
+  // Redesenhar no canvas também descarta os metadados da foto (inclusive a localização GPS).
+  async function paraJpeg(img, lado){
+    const fator = Math.min(1, lado / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.max(1, Math.round(img.naturalWidth * fator)), h = Math.max(1, Math.round(img.naturalHeight * fator));
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const g = c.getContext("2d");
+    g.fillStyle = "#fff"; g.fillRect(0, 0, w, h);      // PNG com fundo transparente não vira preto
+    g.drawImage(img, 0, 0, w, h);
+    const gerar = q => new Promise((ok, no) => c.toBlob(b => b ? ok(b) : no(new Error("falha ao gerar JPEG")), "image/jpeg", q));
+    let q = 0.82, b = await gerar(q);
+    while(b.size > FOTO.maxBytes && q > 0.45){ q -= 0.12; b = await gerar(q); }
+    if(b.size > FOTO.maxBytes) throw new Error("foto grande demais");
+    return b;
+  }
+
+  async function prepararFoto(file){
+    if(!file || !/^image\//.test(file.type || "")) throw new Error("não é uma imagem");
+    const img = await carregarImagem(file);
+    if(!img.naturalWidth || !img.naturalHeight) throw new Error("imagem vazia");
+    const grande = await paraJpeg(img, FOTO.grande);
+    const pequena = await paraJpeg(img, FOTO.pequena);
+    return { id: novoId(), grande, pequena, previewUrl: URL.createObjectURL(pequena), enviada: false };
+  }
+
+  function limparFotoNova(){
+    if(novo.foto){ URL.revokeObjectURL(novo.foto.previewUrl); novo.foto = null; }
+  }
+
+  function atualizarCampoFoto(){
+    const prev = $("#fotoPrev"); if(!prev) return;
+    const ed = novo.editId ? porId[novo.editId] : null;
+    const atual = ed ? fotoSrc(ed, "p") : "";
+    if(novo.foto) prev.innerHTML = `<img src="${esc(novo.foto.previewUrl)}" alt="Pré-visualização da foto">`;
+    else if(atual) prev.innerHTML = `<img src="${esc(atual)}" alt="Foto atual do lugar">`;
+    else prev.innerHTML = CAMERA;
+    $("#btnFoto").textContent = (novo.foto || atual) ? "Trocar foto" : "Adicionar foto";
+    $("#btnFotoRemover").hidden = !novo.foto;
+  }
+
+  async function escolherFoto(ev){
+    const arq = ev.target.files && ev.target.files[0];
+    ev.target.value = "";                      // permite escolher a mesma foto de novo
+    if(!arq) return;
+    mensagem("#msgFoto", "Preparando a foto…");
+    try{
+      const f = await prepararFoto(arq);
+      limparFotoNova();
+      novo.foto = f;
+      atualizarCampoFoto();
+      mensagem("#msgFoto", "");
+    }catch(err){
+      console.warn("Foto não aproveitada:", err);
+      mensagem("#msgFoto", "Não consegui usar essa imagem. Tente outra foto (JPG ou PNG).", "erro");
+    }
+  }
+
+  async function enviarFoto(f){
+    if(f.enviada) return true;                 // já subiu numa tentativa anterior (o registro é que falhou)
+    try{
+      const bucket = sb.storage.from("fotos-lugares");
+      const opts = { contentType: "image/jpeg", upsert: false, cacheControl: "31536000" };
+      const [g, p] = await Promise.all([ bucket.upload(`${f.id}-g.jpg`, f.grande, opts), bucket.upload(`${f.id}-p.jpg`, f.pequena, opts) ]);
+      if(g.error || p.error){ console.error(g.error || p.error); return false; }
+      f.enviada = true;
+      return true;
+    }catch(err){ console.error(err); return false; }
+  }
+
   async function salvarNovo(ev){
     ev.preventDefault();
     const editando = novo.editId;
@@ -842,15 +956,29 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     if(editando){
       const o = porId[editando];
       const igual = nome === o.nome && end === (o.bairro || "") && link === (o.link || "")
-        && Math.abs(novo.lat - o.lat) < 1e-6 && Math.abs(novo.lng - o.lng) < 1e-6;
-      if(igual){ mensagem("#msgNovo", "Nada mudou. Altere algum campo ou mova o pin.", "erro"); return; }
+        && Math.abs(novo.lat - o.lat) < 1e-6 && Math.abs(novo.lng - o.lng) < 1e-6 && !novo.foto;
+      if(igual){ mensagem("#msgNovo", "Nada mudou. Altere algum campo, mova o pin ou troque a foto.", "erro"); return; }
     }
     if(!sb){ mensagem("#msgNovo", "Supabase não configurado. Preencha config.js.", "erro"); return; }
 
     const btn = $("#btnNovo");
-    btn.disabled = true; btn.textContent = "Salvando…"; mensagem("#msgNovo", "");
+    btn.disabled = true; mensagem("#msgNovo", "");
 
-    const dados = { nome, endereco: end || null, lat: novo.lat, lng: novo.lng, link: link || null };
+    // 1º a foto (se houver): se o envio falhar, nada é salvo
+    let fotoId = editando ? (porId[editando].fotoId || null) : null;
+    if(novo.foto){
+      btn.textContent = "Enviando foto…";
+      if(!(await enviarFoto(novo.foto))){
+        btn.disabled = false; btn.textContent = rotulo;
+        mensagem("#msgNovo", "Não foi possível enviar a foto. Tente de novo ou salve sem foto.", "erro");
+        return;
+      }
+      fotoId = novo.foto.id;
+    }
+
+    // 2º o registro
+    btn.textContent = "Salvando…";
+    const dados = { nome, endereco: end || null, lat: novo.lat, lng: novo.lng, link: link || null, foto: fotoId };
     const uuid = editando ? null : novoId();
     const { error } = editando
       ? await sb.from("edicoes_lugar").insert({ restaurante_id: editando, ...dados })   // snapshot novo; o anterior fica no histórico
@@ -867,14 +995,14 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     let id;
     if(editando){
       id = editando;
-      Object.assign(porId[id], { nome, bairro: end, lat: novo.lat, lng: novo.lng, link });
+      Object.assign(porId[id], { nome, bairro: end, lat: novo.lat, lng: novo.lng, link, fotoId: fotoId || "" });
       trocarMarcador(porId[id]);
     }else{
-      const r = { id: "local-" + uuid, nome, bairro: end, lat: novo.lat, lng: novo.lng, foto: "", link };
+      const r = { id: "local-" + uuid, nome, bairro: end, lat: novo.lat, lng: novo.lng, foto: "", fotoId: fotoId || "", link };
       lista.push(r); porId[r.id] = r; criarMarcador(r);
       id = r.id;
     }
-    novo.ativo = false; novo.editId = null; limparPinNovo(); revelarMarcadores();
+    novo.ativo = false; novo.editId = null; limparPinNovo(); revelarMarcadores(); limparFotoNova();
     $(".app").classList.remove("novo");
     abrir(id);   // volta para o lugar (novo ou editado)
   }
@@ -887,7 +1015,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
       let novos = 0;
       (data || []).forEach(l => {
         if(porId[l.id]) return;
-        const r = { id: l.id, nome: l.nome, bairro: l.endereco || "", lat: l.lat, lng: l.lng, foto: "", link: l.link || "" };
+        const r = { id: l.id, nome: l.nome, bairro: l.endereco || "", lat: l.lat, lng: l.lng, foto: "", fotoId: l.foto || "", link: l.link || "" };
         lista.push(r); porId[r.id] = r; criarMarcador(r); novos++;
       });
       if(novos && state.sel === null && !novo.ativo){ mostrarLista(); ajustarMapa(); }
@@ -906,8 +1034,8 @@ textarea::placeholder{color:var(--muted);opacity:.8}
         const r = e && porId[e.restaurante_id];
         if(!r || typeof e.nome !== "string" || !isFinite(e.lat) || !isFinite(e.lng)) return;
         if(novo.ativo && novo.editId === r.id) return;   // não mexe no que está sendo editado agora
-        const nv = { nome: e.nome, bairro: e.endereco || "", lat: e.lat, lng: e.lng, link: e.link || "" };
-        if(r.nome !== nv.nome || r.bairro !== nv.bairro || r.lat !== nv.lat || r.lng !== nv.lng || r.link !== nv.link){
+        const nv = { nome: e.nome, bairro: e.endereco || "", lat: e.lat, lng: e.lng, link: e.link || "", fotoId: e.foto || r.fotoId || "" };
+        if(r.nome !== nv.nome || r.bairro !== nv.bairro || r.lat !== nv.lat || r.lng !== nv.lng || r.link !== nv.link || (r.fotoId || "") !== nv.fotoId){
           Object.assign(r, nv); trocarMarcador(r); mudou = true;
         }
       });

@@ -12,6 +12,7 @@ config.js           URL e chave do Supabase (NÃO sobrescreva ao atualizar)
 restaurantes.js     lista de restaurantes
 fotos/              logos/fotos
 supabase/schema.sql tabelas (marcacoes, avaliacoes, locais, edicoes_lugar) + RLS + funções + view de resumo
+supabase/storage.sql bucket de fotos (fotos-lugares) + regras de envio
 supabase/functions/avisar-telegram/   aviso opcional no Telegram
 ```
 
@@ -23,10 +24,22 @@ Na lista, o botão **"Adicionar um lugar"** abre um formulário: a pessoa busca 
 - Os lugares **fixos** continuam em `restaurantes.js`; os adicionados pelo site vêm do banco (função `locais_publicos()`).
 - **Busca por nome:** ao buscar (por exemplo "Brayan Burger"), o site mostra até 5 opções com nome e endereço, e a pessoa toca na certa. Ele consulta duas fontes gratuitas ao mesmo tempo (Nominatim e Photon, ambas baseadas no OpenStreetMap), junta os resultados, tira os repetidos e só mostra lugares dentro do Ceará.
 - **Limite da busca:** as duas fontes só conhecem o que está cadastrado no OpenStreetMap, que é feito por voluntários. Lugares comerciais pequenos podem não estar lá. Nesse caso: busque pela **rua e número**, cole as **coordenadas do Google Maps** na caixa de busca (botão direito no ponto > clicar nos números; ex.: `-3.7321, -38.4960`) ou toque no mapa.
-- Sem foto por enquanto: o lugar novo mostra o quadrado colorido com a inicial. Para colocar a logo, suba a imagem em `fotos/` e acrescente o lugar em `restaurantes.js`.
+- **Foto:** o formulário tem o campo "Foto (opcional)" (veja a seção *Fotos dos lugares*). Sem foto, aparece o quadrado colorido com a inicial.
 - **Moderação:** para esconder um lugar indevido, rode no SQL Editor `update public.locais set ativo = false where id = '...';` (ou apague a linha em Table Editor > `locais`).
 - **Proteções:** o banco limita nome/endereço/link, aceita só coordenadas dentro do Ceará e recusa mais de 30 lugares novos por hora. Quem tiver o link pode adicionar lugares, então não divulgue o endereço do site além de vocês dois.
 - Para usar em outro estado ou país, ajuste os limites de `lat`/`lng` na tabela `locais` do `schema.sql`.
+
+## Fotos dos lugares
+Tanto ao **adicionar** quanto ao **editar** um lugar dá para escolher uma foto (câmera ou galeria do celular).
+- **No navegador:** a foto é reduzida e convertida para JPEG antes de enviar, em duas versões: uma pequena (~240 px, usada na lista) e uma maior (~1000 px, usada no detalhe). Isso deixa o site rápido, economiza espaço e remove os metadados da foto original, inclusive a localização GPS.
+- **No Supabase:** as imagens ficam no Storage, no bucket público `fotos-lugares`, com nome `<uuid>-g.jpg` e `<uuid>-p.jpg`. O registro do lugar guarda só o `<uuid>`.
+- **Ordem ao salvar:** primeiro a foto, depois o registro. Se o envio da foto falhar, nada é salvo; se o registro falhar, a foto não é reenviada na nova tentativa.
+- **Ativar:** no SQL Editor, rode `supabase/schema.sql` e **depois** `supabase/storage.sql`.
+- **Proteções:** o bucket só aceita JPEG de até 500 KB; o público só consegue **enviar** arquivos novos com o nome no formato esperado (não lista, não sobrescreve, não apaga) e há um teto de 80 arquivos por hora (40 fotos). Para apagar uma foto indevida: painel do Supabase > **Storage > fotos-lugares**.
+- **Trocar a foto de um lugar não apaga a anterior** do Storage (fica no histórico). Se quiser limpar, apague no painel.
+- **iPhone/HEIC:** o Safari costuma converter para JPEG sozinho. Se alguma imagem não abrir, o site pede para tentar outra foto.
+- **Espaço:** cada foto ocupa em torno de 100 a 250 KB somando as duas versões. Confira o limite do seu plano em Settings > Usage.
+- **Se o envio der erro 401/"Invalid JWT":** a versão do `supabase-js` fixada no `index.html` pode ser antiga demais para as chaves novas (`sb_publishable_...`). Atualize o número da versão na tag `<script>` do jsDelivr.
 
 ## Editar um lugar
 Ao abrir um lugar, o link **"Editar informações"** abre o mesmo formulário do cadastro, já preenchido: nome, endereço, Instagram/site e a posição no mapa (arraste o pin, toque em outro ponto ou busque). Vale para os lugares fixos e para os adicionados pelo site.
@@ -41,7 +54,7 @@ Ao abrir um lugar, o link **"Editar informações"** abre o mesmo formulário do
   ```
 - **Histórico:** `select * from public.edicoes_lugar where restaurante_id = 'casannas' order by criado_em desc;`
 - **Confiança:** como não há login, quem tiver o link do site pode editar qualquer lugar (o mesmo vale para adicionar e marcar). O histórico garante que nada se perde e o banco limita a 60 edições por hora. Não divulgue o endereço do site além de vocês dois.
-- **Fotos:** ainda não dá para trocar a foto pelo site. Para isso, suba a imagem em `fotos/` e ajuste `restaurantes.js`.
+- **Foto na edição:** "Trocar foto" no mesmo formulário. A foto nova vale por cima da original (a do `restaurantes.js` não é apagada).
 - **Importante:** se você mudar o nome ou o endereço de um lugar fixo no `restaurantes.js`, uma edição feita pelo site continua valendo por cima. Para o arquivo voltar a mandar, apague as edições daquele lugar no banco.
 
 ## Data marcada visível para todo mundo
