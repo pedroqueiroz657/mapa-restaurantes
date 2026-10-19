@@ -18,6 +18,9 @@ supabase/functions/avisar-telegram/   aviso opcional no Telegram
 ## Atualizando o banco (versão com duas etapas)
 No Supabase, **SQL Editor > New query**: cole `supabase/schema.sql` e rode. Pode rodar mais de uma vez. A tabela antiga `visitas` deixa de ser usada (apague quando quiser: `drop table if exists public.visitas;`).
 
+## Data marcada visível para todo mundo
+Ao abrir um restaurante, o site mostra "Marcado para ..." (ou "Foi em ..." se a data já passou), em qualquer aparelho. Para isso o `schema.sql` cria a função `datas_marcadas()`, que devolve só o id, o restaurante e a data/hora da marcação mais recente de cada lugar. O recado e o restante da tabela continuam privados, porque não existe policy de SELECT. Isso significa que **quem tiver o link vê as datas marcadas**. Se a consulta falhar (por exemplo, a função ainda não foi criada), o site usa só o que está salvo no aparelho.
+
 ## Ver as respostas
 No SQL Editor (as consultas estão comentadas no fim do `schema.sql`):
 ```sql
@@ -28,7 +31,7 @@ select * from public.resumo_restaurantes;  -- ranking com média por categoria
 
 ## Testando
 - No celular ou computador de teste, abra o site, marque um dia, avalie e confira as linhas no Supabase.
-- O site lembra, **só naquele aparelho**, o que já foi marcado/avaliado (para destravar a etapa 2 e mostrar os selos). Para recomeçar o teste, abra o site com `?reset` no final do endereço: `https://SEU-USUARIO.github.io/mapa-restaurantes/?reset`.
+- As datas marcadas vêm do banco (valem em qualquer aparelho). Já o que foi **avaliado** é lembrado só naquele aparelho. Para recomeçar um teste: apague as linhas em `marcacoes`/`avaliacoes` no Supabase e abra o site com `?reset` no final do endereço (`https://SEU-USUARIO.github.io/mapa-restaurantes/?reset`).
 - Depois do teste, apague as linhas de teste em **Table Editor** (`marcacoes` e `avaliacoes`).
 
 ## Ajustes rápidos (no `index.html`, começo do script)

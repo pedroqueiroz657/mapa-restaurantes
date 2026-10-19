@@ -166,6 +166,8 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 .media .n{font-family:'Literata',Georgia,serif;font-weight:700;font-size:2.4rem;line-height:1;color:var(--title);font-variant-numeric:tabular-nums}
 .media .f{color:var(--muted);font-size:.92rem}
 .badge.done{color:var(--badge2-fg);background:var(--badge2-bg)}
+.chip-data{display:flex;width:fit-content;max-width:100%;align-items:center;gap:8px;margin:12px 0 0;padding:7px 14px;border-radius:999px;background:var(--leaf);color:var(--title);font-weight:600;font-size:.95rem}
+.ico-cal{flex:none;width:18px;height:18px;fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -221,6 +223,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const r = Math.random()*16|0; return (c === "x" ? r : (r&3|8)).toString(16); });
   const fmtDataLonga = iso => new Date(iso).toLocaleString("pt-BR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
   const fmtDataCurta = iso => new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const rotuloData = iso => new Date(iso) < new Date() ? "Foi em" : "Marcado para";
   const fmtNum = n => (Math.round(n * 10) / 10).toFixed(1).replace(".", ",");
   const valores = notas => CATEGORIAS.map(c => notas[c.id]).filter(v => v !== null && v !== undefined);
   const mediaDe = notas => { const v = valores(notas); return v.length ? v.reduce((a,b) => a+b, 0) / v.length : null; };
@@ -238,6 +241,19 @@ textarea::placeholder{color:var(--muted);opacity:.8}
   const gravarTudo = d => { memoria = d; try{ localStorage.setItem(CHAVE, JSON.stringify(d)); }catch{} };
   const estadoDe = id => lerTudo()[id] || {};
   const salvarEstado = (id, parte) => { const d = lerTudo(); d[id] = { ...(d[id] || {}), ...parte }; gravarTudo(d); };
+
+  // Datas marcadas vindas do banco (valem para qualquer aparelho).
+  // null = ainda não carregou ou falhou (aí vale só o que está salvo neste aparelho).
+  let servidor = null;   // { [restaurante_id]: { id, iso } }
+  function estadoEfetivo(id){
+    const local = estadoDe(id);
+    let marcado = local.marcado || null;
+    if(servidor !== null){
+      const sv = servidor[id];
+      marcado = sv ? { id: sv.id, iso: sv.iso, recado: (local.marcado && local.marcado.id === sv.id) ? local.marcado.recado : "" } : null;
+    }
+    return { marcado: marcado || undefined, avaliado: marcado ? local.avaliado : undefined };
+  }
 
   /* ---------- Supabase ---------- */
   const configurado = !String(CONFIG.SUPABASE_URL).includes("SEU-PROJETO") && !String(CONFIG.SUPABASE_ANON_KEY).includes("SUA-ANON");
@@ -268,7 +284,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 
   function atualizarPin(id){
     const m = marcadores[id]; if(!m) return;
-    const e = estadoDe(id);
+    const e = estadoEfetivo(id);
     const cls = [state.sel === id ? "sel" : "", e.avaliado ? "avaliado" : (e.marcado ? "marcado" : "")].join(" ").trim();
     m.setIcon(icone(cls));
   }
@@ -319,7 +335,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
       <button type="button" class="item" data-id="${esc(r.id)}">
         ${imgOuPlaceholder(r, "thumb")}
         <span class="txt"><strong>${esc(r.nome)}</strong><small>${esc(r.bairro)}</small></span>
-        ${selo(estadoDe(r.id))}
+        ${selo(estadoEfetivo(r.id))}
       </button>`).join("")}</div>`;
     vista.querySelectorAll(".item").forEach(b => b.addEventListener("click", () => abrir(b.dataset.id)));
     ligarFallbackImg(vista);
@@ -327,6 +343,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 
   /* ---------- detalhe: etapa 1 (marcar) e etapa 2 (avaliar) ---------- */
   const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>';
+  const CAL = '<svg class="ico-cal" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
   const CHECK = '<svg class="ico-ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
   function estrelas(c){
@@ -340,7 +357,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     const m = e.marcado;
     if(m && !state.alterandoData){
       return `<div class="resumo">${CHECK}<div>
-          <strong>Marcado para ${esc(fmtDataLonga(m.iso))}</strong>
+          <strong>${rotuloData(m.iso)} ${esc(fmtDataLonga(m.iso))}</strong>
           ${m.recado ? `<small>“${esc(m.recado)}”</small>` : ""}
           ${e.avaliado ? "" : `<small>Depois de ir, volte aqui e avalie.</small>`}
         </div></div>
@@ -403,7 +420,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 
   function renderDetalhe(){
     const r = porId[state.sel];
-    const e = estadoDe(r.id);
+    const e = estadoEfetivo(r.id);
     const link = urlSegura(r.link);
     const e2 = etapa2(e);
     $("#vista").innerHTML = `
@@ -412,6 +429,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
         ${imgOuPlaceholder(r, "capa")}
         <h2>${esc(r.nome)}</h2>
         <p class="bairro">${esc(r.bairro)}</p>
+        ${e.marcado ? `<p class="chip-data">${CAL}<span>${rotuloData(e.marcado.iso)} ${esc(fmtDataLonga(e.marcado.iso))}</span></p>` : ""}
         ${link ? `<a class="site" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Ver no ${/instagram\.com/.test(link) ? "Instagram" : "site"}</a>` : ""}
 
         <section class="etapa">
@@ -487,6 +505,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
       return;
     }
     salvarEstado(state.sel, { marcado: { id, iso: d.toISOString(), recado } });
+    if(servidor !== null) servidor[state.sel] = { id, iso: d.toISOString() };
     state.alterandoData = false;
     atualizarPin(state.sel);
     renderDetalhe();
@@ -500,7 +519,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     const btn = $("#btnAvaliar");
     btn.disabled = true; btn.textContent = "Enviando…"; mensagem("#msg2", "");
 
-    const e = estadoDe(state.sel);
+    const e = estadoEfetivo(state.sel);
     const payload = { restaurante_id: state.sel, marcacao_id: e.marcado ? e.marcado.id : null, comentario: $("#comoFoi").value.trim() || null };
     CATEGORIAS.forEach(c => { payload[c.id] = state.notas[c.id]; });
 
@@ -540,7 +559,25 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     ajustarMapa();
   }
 
+  async function carregarMarcacoes(){
+    if(!sb) return;
+    try{
+      const { data, error } = await sb.rpc("datas_marcadas");
+      if(error) throw error;
+      const novo = {};
+      (data || []).forEach(l => { novo[l.restaurante_id] = { id: l.id, iso: l.data_hora }; });
+      servidor = novo;
+    }catch(err){
+      console.warn("Não foi possível ler as datas marcadas (rode o schema.sql atualizado):", err);
+      return;
+    }
+    RESTAURANTES.forEach(r => atualizarPin(r.id));
+    if(state.sel === null) mostrarLista();   // com um restaurante aberto, não mexe na tela (evita apagar o que está sendo digitado)
+  }
+
   mostrarLista();
+  carregarMarcacoes();
+  document.addEventListener("visibilitychange", () => { if(!document.hidden) carregarMarcacoes(); });
   setTimeout(() => map.invalidateSize(), 150);
 })();
 </script>
