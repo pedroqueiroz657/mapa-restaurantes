@@ -11,7 +11,7 @@ index.html          página (Leaflet + supabase-js via CDN)
 config.js           URL e chave do Supabase (NÃO sobrescreva ao atualizar)
 restaurantes.js     lista de restaurantes
 fotos/              logos/fotos
-supabase/schema.sql tabelas (marcacoes, avaliacoes, locais) + RLS + funções + view de resumo
+supabase/schema.sql tabelas (marcacoes, avaliacoes, locais, edicoes_lugar) + RLS + funções + view de resumo
 supabase/functions/avisar-telegram/   aviso opcional no Telegram
 ```
 
@@ -27,6 +27,22 @@ Na lista, o botão **"Adicionar um lugar"** abre um formulário: a pessoa busca 
 - **Moderação:** para esconder um lugar indevido, rode no SQL Editor `update public.locais set ativo = false where id = '...';` (ou apague a linha em Table Editor > `locais`).
 - **Proteções:** o banco limita nome/endereço/link, aceita só coordenadas dentro do Ceará e recusa mais de 30 lugares novos por hora. Quem tiver o link pode adicionar lugares, então não divulgue o endereço do site além de vocês dois.
 - Para usar em outro estado ou país, ajuste os limites de `lat`/`lng` na tabela `locais` do `schema.sql`.
+
+## Editar um lugar
+Ao abrir um lugar, o link **"Editar informações"** abre o mesmo formulário do cadastro, já preenchido: nome, endereço, Instagram/site e a posição no mapa (arraste o pin, toque em outro ponto ou busque). Vale para os lugares fixos e para os adicionados pelo site.
+- **Como é gravado:** o banco só aceita inserir, então cada edição vira um novo registro em `edicoes_lugar` com o **estado completo** do lugar naquele momento (um snapshot). O site sempre mostra o mais recente, e os anteriores ficam como histórico. Os dados originais (de `restaurantes.js` ou de `locais`) nunca são alterados.
+- **Desfazer uma edição** (no SQL Editor, trocando o id):
+  ```sql
+  -- apaga só a edição mais recente (volta para a anterior ou para o original)
+  delete from public.edicoes_lugar
+  where id = (select id from public.edicoes_lugar where restaurante_id = 'casannas' order by criado_em desc limit 1);
+  -- volta o lugar totalmente ao original
+  delete from public.edicoes_lugar where restaurante_id = 'casannas';
+  ```
+- **Histórico:** `select * from public.edicoes_lugar where restaurante_id = 'casannas' order by criado_em desc;`
+- **Confiança:** como não há login, quem tiver o link do site pode editar qualquer lugar (o mesmo vale para adicionar e marcar). O histórico garante que nada se perde e o banco limita a 60 edições por hora. Não divulgue o endereço do site além de vocês dois.
+- **Fotos:** ainda não dá para trocar a foto pelo site. Para isso, suba a imagem em `fotos/` e ajuste `restaurantes.js`.
+- **Importante:** se você mudar o nome ou o endereço de um lugar fixo no `restaurantes.js`, uma edição feita pelo site continua valendo por cima. Para o arquivo voltar a mandar, apague as edições daquele lugar no banco.
 
 ## Data marcada visível para todo mundo
 Ao abrir um restaurante, o site mostra "Marcado para ..." (ou "Foi em ..." se a data já passou), em qualquer aparelho. Para isso o `schema.sql` cria a função `datas_marcadas()`, que devolve só o id, o restaurante e a data/hora da marcação mais recente de cada lugar. O recado e o restante da tabela continuam privados, porque não existe policy de SELECT. Isso significa que **quem tiver o link vê as datas marcadas**. Se a consulta falhar (por exemplo, a função ainda não foi criada), o site usa só o que está salvo no aparelho.
@@ -64,7 +80,7 @@ Atualize os arquivos um a um. Se descompactar um zip por cima da pasta, o `confi
    supabase secrets set TELEGRAM_TOKEN=... TELEGRAM_CHAT_ID=... WEBHOOK_SECRET=uma-string-longa-aleatoria
    supabase functions deploy avisar-telegram --no-verify-jwt
    ```
-3. **Database > Webhooks > Create**, uma vez para cada tabela que quiser acompanhar: `marcacoes`, `avaliacoes` e `locais`. Em ambas: evento `INSERT`, HTTP Request, POST, URL `https://SEU-REF.supabase.co/functions/v1/avisar-telegram`, header `x-webhook-secret` com o mesmo valor do secret.
+3. **Database > Webhooks > Create**, uma vez para cada tabela que quiser acompanhar: `marcacoes`, `avaliacoes`, `locais` e `edicoes_lugar`. Em ambas: evento `INSERT`, HTTP Request, POST, URL `https://SEU-REF.supabase.co/functions/v1/avisar-telegram`, header `x-webhook-secret` com o mesmo valor do secret.
 
 ## Segurança e escala
 - **A chave publishable/anon é pública**, e tudo bem: a proteção é o RLS. As tabelas só têm policy de `INSERT`, então quem abre o site não lê nem altera nada. Nunca use a secret/`service_role` no front.

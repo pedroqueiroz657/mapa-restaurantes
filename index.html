@@ -181,6 +181,10 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 .sec{flex:none;min-height:46px;padding:0 18px;border:1.5px solid var(--accent);border-radius:999px;background:none;color:var(--accent);font-weight:600;cursor:pointer}
 .sec[disabled]{opacity:.6;cursor:progress}
 @media (hover:hover){.sec:hover{background:var(--accent);color:var(--on-accent)}}
+.editar-linha{margin:4px 0 0}
+.linkbtn.editar{display:inline-flex;align-items:center;gap:6px;padding:8px 0 0;font-size:.92rem;text-decoration:none}
+.linkbtn.editar:hover{text-decoration:underline}
+.ico-lapis{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .res-tit{margin:12px 0 6px;font-weight:600;font-size:.95rem}
 .res-lista{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:8px}
 .res{display:block;width:100%;text-align:left;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer}
@@ -292,7 +296,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
   /* ---------- estado da tela ---------- */
   const vazias = () => Object.fromEntries(CATEGORIAS.map(c => [c.id, null]));
   const state = { sel: null, notas: vazias(), alterandoData: false, refazendoNota: false };
-  const novo = { ativo: false, lat: null, lng: null, marcador: null, autoNome: null, autoEnd: null };   // modo "adicionar um lugar"
+  const novo = { ativo: false, lat: null, lng: null, marcador: null, autoNome: null, autoEnd: null, editId: null, oculto: null };   // modo "adicionar um lugar"
   const lista = RESTAURANTES.slice();   // fixos (restaurantes.js) + adicionados pelo site (tabela locais)
   const porId = Object.fromEntries(lista.map(r => [r.id, r]));
   const marcadores = {};
@@ -364,13 +368,14 @@ textarea::placeholder{color:var(--muted);opacity:.8}
         ${selo(estadoEfetivo(r.id))}
       </button>`).join("")}</div>`;
     vista.querySelectorAll(".item").forEach(b => b.addEventListener("click", () => abrir(b.dataset.id)));
-    $("#btnNovoLocal").addEventListener("click", abrirNovo);
+    $("#btnNovoLocal").addEventListener("click", () => abrirNovo());
     ligarFallbackImg(vista);
   }
 
   /* ---------- detalhe: etapa 1 (marcar) e etapa 2 (avaliar) ---------- */
   const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>';
   const MAIS = '<svg class="ico-mais" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+  const LAPIS = '<svg class="ico-lapis" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
   const CAL = '<svg class="ico-cal" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
   const CHECK = '<svg class="ico-ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
@@ -459,6 +464,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
         ${r.bairro ? `<p class="bairro">${esc(r.bairro)}</p>` : ""}
         ${e.marcado ? `<p class="chip-data">${CAL}<span>${rotuloData(e.marcado.iso)} ${esc(fmtDataLonga(e.marcado.iso))}</span></p>` : ""}
         ${link ? `<a class="site" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Ver no ${/instagram\.com/.test(link) ? "Instagram" : "site"}</a>` : ""}
+        <p class="editar-linha"><button type="button" class="linkbtn editar" id="btnEditar">${LAPIS} Editar informações</button></p>
 
         <section class="etapa">
           <div class="et-head"><span class="et-num">1</span><h3>Marcar o dia</h3></div>
@@ -474,6 +480,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     const vista = $("#vista");
     ligarFallbackImg(vista);
     $("#voltar").addEventListener("click", voltar);
+    $("#btnEditar").addEventListener("click", () => abrirNovo(r.id));
 
     const fm = $("#formMarcar");       if(fm) fm.addEventListener("submit", marcar);
     const ad = $("#alterarData");      if(ad) ad.addEventListener("click", () => { state.alterandoData = true; renderDetalhe(); });
@@ -569,7 +576,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
   function abrir(id){
     const r = porId[id]; if(!r) return;
     const anterior = state.sel;
-    if(novo.ativo){ novo.ativo = false; limparPinNovo(); $(".app").classList.remove("novo"); }
+    if(novo.ativo){ novo.ativo = false; novo.editId = null; limparPinNovo(); revelarMarcadores(); $(".app").classList.remove("novo"); }
     state.sel = id; state.notas = vazias(); state.alterandoData = false; state.refazendoNota = false;
     $(".app").classList.add("detalhe");
     map.invalidateSize({ animate: false });
@@ -637,11 +644,12 @@ textarea::placeholder{color:var(--muted);opacity:.8}
   map.on("click", ev => { if(novo.ativo) posicionarNovo(ev.latlng.lat, ev.latlng.lng); });
 
   function renderNovo(){
+    const ed = novo.editId ? porId[novo.editId] : null;
     $("#vista").innerHTML = `
       <section class="novo-form">
         <button type="button" class="voltar" id="cancelarNovo">← Cancelar</button>
-        <h2>Adicionar um lugar</h2>
-        <p class="dica">Busque pelo nome (ou pela rua) e escolha o lugar na lista, ou toque no mapa. Dá para arrastar o pin para ajustar.</p>
+        <h2>${ed ? "Editar lugar" : "Adicionar um lugar"}</h2>
+        <p class="dica">${ed ? "Corrija nome, endereço ou link. Para mudar o ponto no mapa, arraste o pin, toque em outro lugar ou busque abaixo." : "Busque pelo nome (ou pela rua) e escolha o lugar na lista, ou toque no mapa. Dá para arrastar o pin para ajustar."}</p>
 
         <div class="busca">
           <input type="text" id="busca" placeholder="Nome do lugar ou rua e número" autocomplete="off" aria-label="Buscar endereço">
@@ -654,18 +662,18 @@ textarea::placeholder{color:var(--muted);opacity:.8}
         <form id="formNovo" novalidate>
           <div>
             <label class="lbl" for="nNome">Nome do lugar</label>
-            <input type="text" id="nNome" maxlength="80" autocomplete="off">
+            <input type="text" id="nNome" maxlength="80" autocomplete="off" value="${ed ? esc(ed.nome) : ""}">
           </div>
           <div>
             <label class="lbl" for="nEnd">Endereço ou bairro (opcional)</label>
-            <input type="text" id="nEnd" maxlength="120" autocomplete="off">
+            <input type="text" id="nEnd" maxlength="120" autocomplete="off" value="${ed ? esc(ed.bairro) : ""}">
           </div>
           <div>
             <label class="lbl" for="nLink">Instagram ou site (opcional)</label>
-            <input type="text" id="nLink" maxlength="300" placeholder="@perfil ou https://…" inputmode="url" autocomplete="off">
+            <input type="text" id="nLink" maxlength="300" placeholder="@perfil ou https://…" inputmode="url" autocomplete="off" value="${ed ? esc(ed.link) : ""}">
           </div>
           <p class="msg" id="msgNovo" role="status" aria-live="polite"></p>
-          <button class="enviar" id="btnNovo" type="submit">Adicionar lugar</button>
+          <button class="enviar" id="btnNovo" type="submit">${ed ? "Salvar alterações" : "Adicionar lugar"}</button>
         </form>
       </section>`;
     textoStatus();
@@ -675,23 +683,46 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     $("#formNovo").addEventListener("submit", salvarNovo);
   }
 
-  function abrirNovo(){
+  function abrirNovo(editId){
     if(state.sel){ const a = state.sel; state.sel = null; atualizarPin(a); }
-    limparPinNovo();
-    novo.ativo = true; novo.lat = null; novo.lng = null; novo.autoNome = null; novo.autoEnd = null;
+    limparPinNovo(); revelarMarcadores();
+    novo.ativo = true; novo.editId = editId || null; novo.autoNome = null; novo.autoEnd = null;
+    novo.lat = null; novo.lng = null;
+    const r = novo.editId ? porId[novo.editId] : null;
     const app = $(".app");
     app.classList.remove("detalhe"); app.classList.add("novo");
     map.invalidateSize({ animate: false });
     renderNovo();
+    if(r){
+      // editando: tira o pin original do mapa (fica só o pin arrastável) e posiciona o pin no ponto atual
+      if(marcadores[r.id]){ map.removeLayer(marcadores[r.id]); novo.oculto = r.id; }
+      posicionarNovo(r.lat, r.lng);
+      map.flyTo([r.lat, r.lng], Math.max(map.getZoom(), 16), { animate: !reduzMovimento, duration: .6 });
+    }
     $("#painel").scrollTop = 0;
   }
 
   function sairNovo(){
-    novo.ativo = false; limparPinNovo();
+    const id = novo.editId;
+    novo.ativo = false; novo.editId = null; limparPinNovo(); revelarMarcadores();
     $(".app").classList.remove("novo");
     map.invalidateSize({ animate: false });
+    if(id){ abrir(id); return; }   // cancelou uma edição: volta para o lugar
     mostrarLista();
     ajustarMapa();
+  }
+
+  // devolve ao mapa o pin que foi escondido durante a edição
+  function revelarMarcadores(){
+    if(novo.oculto && marcadores[novo.oculto]) marcadores[novo.oculto].addTo(map);
+    novo.oculto = null;
+  }
+  // recria o pin de um lugar (posição ou nome mudaram)
+  function trocarMarcador(r){
+    const antigo = marcadores[r.id];
+    if(antigo) map.removeLayer(antigo);
+    if(novo.oculto === r.id) novo.oculto = null;
+    criarMarcador(r);
   }
 
   /* ---------- busca de lugares: lista de até 5 opções ---------- */
@@ -799,32 +830,53 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 
   async function salvarNovo(ev){
     ev.preventDefault();
+    const editando = novo.editId;
     const nome = $("#nNome").value.trim();
     const end = $("#nEnd").value.trim();
     const linkBruto = $("#nLink").value.trim();
     const link = normalizarLink(linkBruto);
+    const rotulo = editando ? "Salvar alterações" : "Adicionar lugar";
     if(nome.length < 2){ mensagem("#msgNovo", "Dê um nome ao lugar.", "erro"); $("#nNome").focus(); return; }
-    if(novo.lat === null){ mensagem("#msgNovo", "Marque o ponto no mapa: busque o endereço ou toque onde fica o lugar.", "erro"); return; }
+    if(novo.lat === null){ mensagem("#msgNovo", "Marque o ponto no mapa: busque o lugar ou toque onde ele fica.", "erro"); return; }
     if(linkBruto && !link){ mensagem("#msgNovo", "Link inválido. Use @perfil ou um endereço como https://…", "erro"); $("#nLink").focus(); return; }
+    if(editando){
+      const o = porId[editando];
+      const igual = nome === o.nome && end === (o.bairro || "") && link === (o.link || "")
+        && Math.abs(novo.lat - o.lat) < 1e-6 && Math.abs(novo.lng - o.lng) < 1e-6;
+      if(igual){ mensagem("#msgNovo", "Nada mudou. Altere algum campo ou mova o pin.", "erro"); return; }
+    }
     if(!sb){ mensagem("#msgNovo", "Supabase não configurado. Preencha config.js.", "erro"); return; }
 
     const btn = $("#btnNovo");
-    btn.disabled = true; btn.textContent = "Adicionando…"; mensagem("#msgNovo", "");
+    btn.disabled = true; btn.textContent = "Salvando…"; mensagem("#msgNovo", "");
 
-    const uuid = novoId();
-    const { error } = await sb.from("locais").insert({ id: uuid, nome, endereco: end || null, lat: novo.lat, lng: novo.lng, link: link || null });
+    const dados = { nome, endereco: end || null, lat: novo.lat, lng: novo.lng, link: link || null };
+    const uuid = editando ? null : novoId();
+    const { error } = editando
+      ? await sb.from("edicoes_lugar").insert({ restaurante_id: editando, ...dados })   // snapshot novo; o anterior fica no histórico
+      : await sb.from("locais").insert({ id: uuid, ...dados });
     if(error){
       console.error(error);
-      btn.disabled = false; btn.textContent = "Adicionar lugar";
-      mensagem("#msgNovo", /Muitos locais/.test(error.message || "") ? "Muitos lugares adicionados há pouco. Tente de novo mais tarde."
-                                                                     : "Não foi possível adicionar. Verifique a conexão e tente de novo.", "erro");
+      btn.disabled = false; btn.textContent = rotulo;
+      const limite = /Muitos locais|Muitas edi/.test(error.message || "");
+      mensagem("#msgNovo", limite ? (editando ? "Muitas alterações há pouco. Tente de novo mais tarde." : "Muitos lugares adicionados há pouco. Tente de novo mais tarde.")
+                                  : "Não foi possível salvar. Verifique a conexão e tente de novo.", "erro");
       return;
     }
-    const r = { id: "local-" + uuid, nome, bairro: end, lat: novo.lat, lng: novo.lng, foto: "", link };
-    lista.push(r); porId[r.id] = r; criarMarcador(r);
-    novo.ativo = false; limparPinNovo();
+
+    let id;
+    if(editando){
+      id = editando;
+      Object.assign(porId[id], { nome, bairro: end, lat: novo.lat, lng: novo.lng, link });
+      trocarMarcador(porId[id]);
+    }else{
+      const r = { id: "local-" + uuid, nome, bairro: end, lat: novo.lat, lng: novo.lng, foto: "", link };
+      lista.push(r); porId[r.id] = r; criarMarcador(r);
+      id = r.id;
+    }
+    novo.ativo = false; novo.editId = null; limparPinNovo(); revelarMarcadores();
     $(".app").classList.remove("novo");
-    abrir(r.id);   // já abre o lugar novo para marcar o dia
+    abrir(id);   // volta para o lugar (novo ou editado)
   }
 
   async function carregarLocais(){
@@ -844,6 +896,27 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     }
   }
 
+  async function carregarEdicoes(){
+    if(!sb) return;
+    try{
+      const { data, error } = await sb.rpc("edicoes_atuais");
+      if(error) throw error;
+      let mudou = false;
+      (data || []).forEach(e => {
+        const r = e && porId[e.restaurante_id];
+        if(!r || typeof e.nome !== "string" || !isFinite(e.lat) || !isFinite(e.lng)) return;
+        if(novo.ativo && novo.editId === r.id) return;   // não mexe no que está sendo editado agora
+        const nv = { nome: e.nome, bairro: e.endereco || "", lat: e.lat, lng: e.lng, link: e.link || "" };
+        if(r.nome !== nv.nome || r.bairro !== nv.bairro || r.lat !== nv.lat || r.lng !== nv.lng || r.link !== nv.link){
+          Object.assign(r, nv); trocarMarcador(r); mudou = true;
+        }
+      });
+      if(mudou && state.sel === null && !novo.ativo){ mostrarLista(); ajustarMapa(); }
+    }catch(err){
+      console.warn("Não foi possível ler as edições (rode o schema.sql atualizado):", err);
+    }
+  }
+
   async function carregarMarcacoes(){
     if(!sb) return;
     try{
@@ -860,7 +933,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     if(state.sel === null && !novo.ativo) mostrarLista();   // com um restaurante aberto, não mexe na tela (evita apagar o que está sendo digitado)
   }
 
-  async function atualizarTudo(){ await carregarLocais(); await carregarMarcacoes(); }
+  async function atualizarTudo(){ await carregarLocais(); await carregarEdicoes(); await carregarMarcacoes(); }
   mostrarLista();
   atualizarTudo();
   document.addEventListener("visibilitychange", () => { if(!document.hidden) atualizarTudo(); });
