@@ -21,7 +21,8 @@ No Supabase, **SQL Editor > New query**: cole `supabase/schema.sql` e rode. Pode
 ## Adicionar um lugar pelo site
 Na lista, o botão **"Adicionar um lugar"** abre um formulário: a pessoa busca o endereço (ou toca no mapa), ajusta o pin arrastando, informa o nome e, se quiser, o endereço e o Instagram/site (`@perfil` já vale). Ao salvar, o lugar vai para a tabela `locais`, aparece para todo mundo e já abre para marcar o dia.
 - Os lugares **fixos** continuam em `restaurantes.js`; os adicionados pelo site vêm do banco (função `locais_publicos()`).
-- A busca usa o Nominatim do OpenStreetMap (gratuito, uso leve). Se estiver fora do ar, dá para tocar no mapa.
+- **Busca por nome:** ao buscar (por exemplo "Brayan Burger"), o site mostra até 5 opções com nome e endereço, e a pessoa toca na certa. Ele consulta duas fontes gratuitas ao mesmo tempo (Nominatim e Photon, ambas baseadas no OpenStreetMap), junta os resultados, tira os repetidos e só mostra lugares dentro do Ceará.
+- **Limite da busca:** as duas fontes só conhecem o que está cadastrado no OpenStreetMap, que é feito por voluntários. Lugares comerciais pequenos podem não estar lá. Nesse caso: busque pela **rua e número**, cole as **coordenadas do Google Maps** na caixa de busca (botão direito no ponto > clicar nos números; ex.: `-3.7321, -38.4960`) ou toque no mapa.
 - Sem foto por enquanto: o lugar novo mostra o quadrado colorido com a inicial. Para colocar a logo, suba a imagem em `fotos/` e acrescente o lugar em `restaurantes.js`.
 - **Moderação:** para esconder um lugar indevido, rode no SQL Editor `update public.locais set ativo = false where id = '...';` (ou apague a linha em Table Editor > `locais`).
 - **Proteções:** o banco limita nome/endereço/link, aceita só coordenadas dentro do Ceará e recusa mais de 30 lugares novos por hora. Quem tiver o link pode adicionar lugares, então não divulgue o endereço do site além de vocês dois.

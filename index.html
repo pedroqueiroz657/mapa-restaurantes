@@ -181,6 +181,13 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 .sec{flex:none;min-height:46px;padding:0 18px;border:1.5px solid var(--accent);border-radius:999px;background:none;color:var(--accent);font-weight:600;cursor:pointer}
 .sec[disabled]{opacity:.6;cursor:progress}
 @media (hover:hover){.sec:hover{background:var(--accent);color:var(--on-accent)}}
+.res-tit{margin:12px 0 6px;font-weight:600;font-size:.95rem}
+.res-lista{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:8px}
+.res{display:block;width:100%;text-align:left;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer}
+.res strong{display:block;font-weight:600}
+.res small{display:block;color:var(--muted)}
+.res.sel{border-color:var(--accent);background:var(--leaf)}
+@media (hover:hover){.res:hover{border-color:var(--accent)}}
 .status-local{margin:6px 0 22px;padding:9px 12px;border-radius:10px;background:var(--leaf);color:var(--muted);font-size:.92rem}
 .status-local.ok{color:var(--ink)}
 
@@ -285,7 +292,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
   /* ---------- estado da tela ---------- */
   const vazias = () => Object.fromEntries(CATEGORIAS.map(c => [c.id, null]));
   const state = { sel: null, notas: vazias(), alterandoData: false, refazendoNota: false };
-  const novo = { ativo: false, lat: null, lng: null, marcador: null };   // modo "adicionar um lugar"
+  const novo = { ativo: false, lat: null, lng: null, marcador: null, autoNome: null, autoEnd: null };   // modo "adicionar um lugar"
   const lista = RESTAURANTES.slice();   // fixos (restaurantes.js) + adicionados pelo site (tabela locais)
   const porId = Object.fromEntries(lista.map(r => [r.id, r]));
   const marcadores = {};
@@ -634,13 +641,14 @@ textarea::placeholder{color:var(--muted);opacity:.8}
       <section class="novo-form">
         <button type="button" class="voltar" id="cancelarNovo">← Cancelar</button>
         <h2>Adicionar um lugar</h2>
-        <p class="dica">Busque o endereço ou toque no mapa onde fica o lugar. Dá para arrastar o pin para ajustar.</p>
+        <p class="dica">Busque pelo nome (ou pela rua) e escolha o lugar na lista, ou toque no mapa. Dá para arrastar o pin para ajustar.</p>
 
         <div class="busca">
-          <input type="text" id="busca" placeholder="Endereço ou nome do lugar" autocomplete="off" aria-label="Buscar endereço">
+          <input type="text" id="busca" placeholder="Nome do lugar ou rua e número" autocomplete="off" aria-label="Buscar endereço">
           <button type="button" class="sec" id="btnBusca">Buscar</button>
         </div>
         <p class="msg" id="msgBusca" role="status" aria-live="polite"></p>
+        <div id="resultados"></div>
         <p class="status-local" id="statusLocal"></p>
 
         <form id="formNovo" novalidate>
@@ -670,7 +678,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
   function abrirNovo(){
     if(state.sel){ const a = state.sel; state.sel = null; atualizarPin(a); }
     limparPinNovo();
-    novo.ativo = true; novo.lat = null; novo.lng = null;
+    novo.ativo = true; novo.lat = null; novo.lng = null; novo.autoNome = null; novo.autoEnd = null;
     const app = $(".app");
     app.classList.remove("detalhe"); app.classList.add("novo");
     map.invalidateSize({ animate: false });
@@ -686,27 +694,103 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     ajustarMapa();
   }
 
+  /* ---------- busca de lugares: lista de até 5 opções ---------- */
+  // mesma caixa aceita pela tabela locais (evita oferecer um ponto que o banco recusaria)
+  const CAIXA = { latMin: -7.9, latMax: -2.7, lngMin: -41.5, lngMax: -37.2 };
+  const dentroDaCaixa = (lat, lng) => lat >= CAIXA.latMin && lat <= CAIXA.latMax && lng >= CAIXA.lngMin && lng <= CAIXA.lngMax;
+  const juntar = (...p) => p.filter(Boolean).join(", ");
+  const semAcento = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const metros = (a, b) => {
+    const dx = (b.lng - a.lng) * Math.cos(a.lat * Math.PI / 180) * 111320, dy = (b.lat - a.lat) * 110540;
+    return Math.sqrt(dx*dx + dy*dy);
+  };
+  const FORTALEZA = { lat: -3.7319, lng: -38.5267, bbox: "-38.80,-4.05,-38.25,-3.45" };   // região metropolitana (minLon,minLat,maxLon,maxLat)
+
+  function deNominatim(it){
+    const a = it.address || {};
+    const rua = a.road ? (a.house_number ? `${a.road}, ${a.house_number}` : a.road) : "";
+    const bairro = a.suburb || a.neighbourhood || a.city_district || a.quarter || "";
+    return { nome: it.name || String(it.display_name || "").split(",")[0], endereco: juntar(rua, bairro), lat: parseFloat(it.lat), lng: parseFloat(it.lon) };
+  }
+  function dePhoton(f){
+    const p = f.properties || {}, c = (f.geometry || {}).coordinates || [];
+    const rua = p.street ? (p.housenumber ? `${p.street}, ${p.housenumber}` : p.street) : "";
+    const bairro = p.district || p.locality || p.city || "";
+    return { nome: p.name || rua, endereco: juntar(rua, bairro), lat: Number(c[1]), lng: Number(c[0]) };
+  }
+  // junta as fontes, tira repetidos (mesmo nome a menos de 150 m) e fica com os 5 primeiros
+  function mesclar(listas){
+    const saida = [];
+    listas.flat().forEach(r => {
+      if(!r.nome || !isFinite(r.lat) || !isFinite(r.lng) || !dentroDaCaixa(r.lat, r.lng)) return;
+      const n = semAcento(r.nome);
+      if(saida.some(o => { const m = semAcento(o.nome); return (m === n || m.includes(n) || n.includes(m)) && metros(o, r) < 150; })) return;
+      saida.push(r);
+    });
+    return saida.slice(0, 5);
+  }
+
+  function mostrarResultados(rs){
+    const box = $("#resultados");
+    box.innerHTML = `<p class="res-tit">Escolha o lugar:</p>
+      <ul class="res-lista">${rs.map((r, i) => `
+        <li><button type="button" class="res" data-i="${i}" aria-pressed="false">
+          <strong>${esc(r.nome)}</strong><small>${esc(r.endereco || "endereço não informado")}</small>
+        </button></li>`).join("")}</ul>`;
+    box.querySelectorAll(".res").forEach(b => b.addEventListener("click", () => escolherResultado(rs[Number(b.dataset.i)], b)));
+  }
+
+  function escolherResultado(r, btn){
+    document.querySelectorAll(".res").forEach(x => { const on = x === btn; x.classList.toggle("sel", on); x.setAttribute("aria-pressed", String(on)); });
+    posicionarNovo(r.lat, r.lng);
+    map.flyTo([r.lat, r.lng], 17, { animate: !reduzMovimento, duration: .6 });
+    // preenche nome e endereço, mas nunca por cima do que a pessoa digitou
+    const n = $("#nNome"), e = $("#nEnd");
+    if(n && (!n.value.trim() || n.value === novo.autoNome)){ n.value = r.nome.slice(0, 80); novo.autoNome = n.value; }
+    if(e && (!e.value.trim() || e.value === novo.autoEnd)){ e.value = (r.endereco || "").slice(0, 120); novo.autoEnd = e.value; }
+    mensagem("#msgBusca", "Pin colocado. Se estiver fora do lugar, arraste-o no mapa.", "ok");
+  }
+
   async function buscarEndereco(){
     const q = $("#busca").value.trim();
     if(q.length < 3){ mensagem("#msgBusca", "Digite pelo menos 3 letras.", "erro"); return; }
-    const btn = $("#btnBusca");
-    btn.disabled = true; mensagem("#msgBusca", "Buscando…");
-    const consulta = /fortaleza/i.test(q) ? q : q + ", Fortaleza, CE";
-    try{
-      const resp = await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&accept-language=pt-BR&q=" + encodeURIComponent(consulta));
-      if(!resp.ok) throw new Error("HTTP " + resp.status);
-      const achados = await resp.json();
-      if(!achados.length){ mensagem("#msgBusca", "Não achei esse endereço. Toque no mapa para marcar o ponto.", "erro"); return; }
-      const a = achados[0];
-      const lat = parseFloat(a.lat), lng = parseFloat(a.lon);
-      if(isNaN(lat) || isNaN(lng)) throw new Error("coordenadas inválidas");
+    $("#resultados").innerHTML = "";
+
+    // coordenadas coladas do Google Maps (ex.: -3.7321, -38.4960): dispensa a busca
+    const coord = q.match(/^(-?\d{1,2}\.\d+)\s*[,;]?\s*(-?\d{1,3}\.\d+)$/);
+    if(coord){
+      const lat = parseFloat(coord[1]), lng = parseFloat(coord[2]);
+      if(!dentroDaCaixa(lat, lng)){ mensagem("#msgBusca", "Essas coordenadas estão fora do Ceará.", "erro"); return; }
       posicionarNovo(lat, lng);
       map.flyTo([lat, lng], 17, { animate: !reduzMovimento, duration: .6 });
-      const nome = $("#nNome");
-      if(nome && !nome.value.trim() && a.name) nome.value = String(a.name).slice(0, 80);
-      mensagem("#msgBusca", "Achei: " + String(a.display_name || "").split(",").slice(0, 3).join(",") + ". Confira o pin no mapa.", "ok");
+      mensagem("#msgBusca", "Coordenadas reconhecidas. Confira o pin no mapa.", "ok");
+      return;
+    }
+
+    const btn = $("#btnBusca");
+    btn.disabled = true; mensagem("#msgBusca", "Buscando…");
+    const enc = encodeURIComponent(q);
+    const lerJson = r => { if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); };
+    const pedidos = [
+      // Nominatim, limitado à região de Fortaleza
+      fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&countrycodes=br&accept-language=pt-BR&viewbox=-38.80,-3.45,-38.25,-4.05&bounded=1&q=${enc}`)
+        .then(lerJson).then(js => js.map(deNominatim)),
+      // Photon: tolera erro de digitação e dá preferência a quem está perto de Fortaleza
+      fetch(`https://photon.komoot.io/api/?limit=5&lat=${FORTALEZA.lat}&lon=${FORTALEZA.lng}&bbox=${FORTALEZA.bbox}&q=${enc}`)
+        .then(lerJson).then(js => (js.features || []).map(dePhoton)),
+    ];
+    try{
+      const feitos = (await Promise.allSettled(pedidos)).filter(x => x.status === "fulfilled");
+      if(!feitos.length) throw new Error("as duas buscas falharam");
+      const rs = mesclar(feitos.map(x => x.value));
+      if(!rs.length){
+        mensagem("#msgBusca", `Não achei "${q}". Tente a rua e o número, cole as coordenadas do Google Maps ou toque no mapa.`, "erro");
+        return;
+      }
+      mensagem("#msgBusca", rs.length === 1 ? "Achei 1 lugar. Toque nele para marcar no mapa." : `Achei ${rs.length} lugares. Toque no certo.`, "ok");
+      mostrarResultados(rs);
     }catch(err){
-      console.warn("Busca de endereço falhou:", err);
+      console.warn("Busca de lugares falhou:", err);
       mensagem("#msgBusca", "A busca está indisponível agora. Toque no mapa para marcar o ponto.", "erro");
     }finally{
       btn.disabled = false;
