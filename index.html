@@ -20,7 +20,7 @@
   --leaf:#D5E4CB; --hover:rgba(213,228,203,.6); --line:#C5D6BC; --gold:#C99A2E; --focus:#1D4D37;
   --pin:#2B6B4C; --pin-sel:#1D4D37; --pin-ring:rgba(29,77,55,.28);
   --warn-bg:#F6EBC8; --warn-line:#DDBF6A; --badge-bg:#F3E5B8; --badge-fg:#5E450C;
-  --err:#A3262F; --ok:#1D6B3E; --done:#2F7F95; --badge2-bg:#D2E7EE; --badge2-fg:#174A5A; --ph1:#2B6B4C; --ph2:#528A66;
+  --err:#A3262F; --ok:#1D6B3E; --done:#2F7F95; --badge2-bg:#D2E7EE; --badge2-fg:#174A5A; --perigo-bg:#A3262F; --perigo-fg:#FFFFFF; --ph1:#2B6B4C; --ph2:#528A66;
   --contour:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 170' preserveAspectRatio='xMaxYMid slice'%3E%3Cg fill='none' stroke='rgb(43,107,76)' stroke-opacity='.22' stroke-width='1.1'%3E%3Cpath d='M-10 150C70 90 130 175 215 120S350 60 430 105'/%3E%3Cpath d='M-10 128C70 70 135 150 215 98S350 42 430 82'/%3E%3Cpath d='M-10 106C75 52 135 128 215 76S350 26 430 60'/%3E%3Cpath d='M-10 84C78 36 138 106 215 56S350 12 430 40'/%3E%3Cpath d='M-10 62C80 20 140 86 215 38S350 0 430 20'/%3E%3C/g%3E%3C/svg%3E");
   color-scheme: light dark;
 }
@@ -32,7 +32,7 @@
     --leaf:#1C3A2E; --hover:rgba(143,203,166,.10); --line:#2C4A3C; --gold:#E3B34F; --focus:#BFE3CC;
     --pin:#8FCBA6; --pin-sel:#E3F4E8; --pin-ring:rgba(143,203,166,.4);
     --warn-bg:#3A3216; --warn-line:#7C6624; --badge-bg:#4A3C14; --badge-fg:#F3E5B8;
-    --err:#FF9DA2; --ok:#8FD3A8; --done:#7FC4D8; --badge2-bg:#1B4452; --badge2-fg:#CDEAF3; --ph1:#2F6F50; --ph2:#4C8C66;
+    --err:#FF9DA2; --ok:#8FD3A8; --done:#7FC4D8; --badge2-bg:#1B4452; --badge2-fg:#CDEAF3; --perigo-bg:#FF9DA2; --perigo-fg:#3A0A0E; --ph1:#2F6F50; --ph2:#4C8C66;
     --contour:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 170' preserveAspectRatio='xMaxYMid slice'%3E%3Cg fill='none' stroke='rgb(143,203,166)' stroke-opacity='.16' stroke-width='1.1'%3E%3Cpath d='M-10 150C70 90 130 175 215 120S350 60 430 105'/%3E%3Cpath d='M-10 128C70 70 135 150 215 98S350 42 430 82'/%3E%3Cpath d='M-10 106C75 52 135 128 215 76S350 26 430 60'/%3E%3Cpath d='M-10 84C78 36 138 106 215 56S350 12 430 40'/%3E%3Cpath d='M-10 62C80 20 140 86 215 38S350 0 430 20'/%3E%3C/g%3E%3C/svg%3E");
   }
 }
@@ -166,6 +166,21 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 .media{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:6px 0}
 .media .n{font-family:'Literata',Georgia,serif;font-weight:700;font-size:2.4rem;line-height:1;color:var(--title);font-variant-numeric:tabular-nums}
 .media .f{color:var(--muted);font-size:.92rem}
+.datas{list-style:none;margin:0 0 4px;padding:0;display:grid;gap:10px}
+.data.resumo{flex-direction:column;align-items:stretch;gap:6px}
+.data-info{display:flex;gap:10px;align-items:flex-start}
+.data-acoes{display:flex;gap:16px;margin-left:32px}
+.data-acoes .linkbtn,.data-conf .linkbtn{padding-top:0}
+.data-conf{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-left:32px;font-size:.92rem}
+.data .msg{margin-left:32px;min-height:0}
+.data .msg:empty{display:none}
+.data.edit{padding:14px;border-radius:12px;background:var(--leaf)}
+.data.edit form{margin-top:0;gap:16px}
+.linha-botoes{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.linha-botoes .linkbtn{padding-top:0}
+.enviar.mini{padding:7px 14px;font-size:.9rem}
+.enviar.perigo{background:var(--perigo-bg);color:var(--perigo-fg)}
+@media (hover:hover){.enviar.perigo:hover{background:var(--perigo-bg);filter:brightness(1.08)}}
 .badge.done{color:var(--badge2-fg);background:var(--badge2-bg)}
 .chip-data{display:flex;width:fit-content;max-width:100%;align-items:center;gap:8px;margin:12px 0 0;padding:7px 14px;border-radius:999px;background:var(--leaf);color:var(--title);font-weight:600;font-size:.95rem}
 .ico-cal{flex:none;width:18px;height:18px;fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -296,15 +311,37 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 
   // Datas marcadas vindas do banco (valem para qualquer aparelho).
   // null = ainda não carregou ou falhou (aí vale só o que está salvo neste aparelho).
-  let servidor = null;   // { [restaurante_id]: { id, iso } }
+  let servidor = null;   // { [restaurante_id]: [ { id, iso, recado } ] }, sempre em ordem de data
+  const ordenarDatas = arr => arr.slice().sort((a, b) => new Date(a.iso) - new Date(b.iso));
+  function marcacoesDe(id){
+    if(servidor !== null) return servidor[id] || [];
+    const l = estadoDe(id);
+    return ordenarDatas(l.marcacoes || (l.marcado ? [l.marcado] : []));   // "marcado" = formato antigo, de uma data só
+  }
+  // aplica uma mudança na lista de datas de um lugar, no cache do banco e na cópia deste aparelho
+  function cacheMarcacoes(id, fn){
+    if(servidor !== null){
+      const nova = ordenarDatas(fn(servidor[id] || []));
+      if(nova.length) servidor[id] = nova; else delete servidor[id];
+    }
+    const l = estadoDe(id);
+    salvarEstado(id, { marcacoes: ordenarDatas(fn(l.marcacoes || (l.marcado ? [l.marcado] : []))), marcado: undefined });
+  }
+  // a data "principal": a próxima que ainda vai acontecer; se todas passaram, a mais recente
+  function principal(ms){
+    const agora = Date.now(), futuras = ms.filter(m => new Date(m.iso).getTime() >= agora);
+    return futuras.length ? futuras[0] : (ms.length ? ms[ms.length - 1] : null);
+  }
+  // a data a que a avaliação se refere: a visita mais recente que já passou (ou, se nenhuma passou, a principal)
+  function paraAvaliar(ms){
+    const agora = Date.now(), passadas = ms.filter(m => new Date(m.iso).getTime() <= agora);
+    const m = passadas.length ? passadas[passadas.length - 1] : principal(ms);
+    return m ? m.id : null;
+  }
   function estadoEfetivo(id){
     const local = estadoDe(id);
-    let marcado = local.marcado || null;
-    if(servidor !== null){
-      const sv = servidor[id];
-      marcado = sv ? { id: sv.id, iso: sv.iso, recado: (local.marcado && local.marcado.id === sv.id) ? local.marcado.recado : "" } : null;
-    }
-    return { marcado: marcado || undefined, avaliado: marcado ? local.avaliado : undefined };
+    const ms = marcacoesDe(id);
+    return { marcacoes: ms, marcado: principal(ms) || undefined, avaliado: ms.length ? local.avaliado : undefined };
   }
 
   /* ---------- Supabase ---------- */
@@ -321,7 +358,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
 
   /* ---------- estado da tela ---------- */
   const vazias = () => Object.fromEntries(CATEGORIAS.map(c => [c.id, null]));
-  const state = { sel: null, notas: vazias(), alterandoData: false, refazendoNota: false };
+  const state = { sel: null, notas: vazias(), novaData: false, editandoMarc: null, cancelandoMarc: null, refazendoNota: false };
   const novo = { ativo: false, lat: null, lng: null, marcador: null, autoNome: null, autoEnd: null, editId: null, oculto: null, foto: null };   // modo "adicionar um lugar"
   const lista = RESTAURANTES.slice();   // fixos (restaurantes.js) + adicionados pelo site (tabela locais)
   const porId = Object.fromEntries(lista.map(r => [r.id, r]));
@@ -388,7 +425,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
   /* ---------- lista ---------- */
   function selo(e){
     if(e.avaliado) return `<span class="badge done">★ ${fmtNum(e.avaliado.media)}</span>`;
-    if(e.marcado)  return `<span class="badge">Marcado ${fmtDataCurta(e.marcado.iso)}</span>`;
+    if(e.marcado)  return `<span class="badge">Marcado ${fmtDataCurta(e.marcado.iso)}${e.marcacoes.length > 1 ? ` +${e.marcacoes.length - 1}` : ""}</span>`;
     return "";
   }
   function mostrarLista(){
@@ -427,15 +464,51 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     </div>`;
   }
 
+  const paraInputLocal = iso => { const d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
+
+  function linhaData(m){
+    if(state.editandoMarc === m.id){
+      return `<li class="data edit" data-mid="${esc(m.id)}">
+        <form id="formEditarData" novalidate>
+          <div>
+            <label class="lbl" for="qEdit">Dia e hora</label>
+            <input type="datetime-local" id="qEdit" value="${esc(paraInputLocal(m.iso))}">
+          </div>
+          <div>
+            <label class="lbl" for="rEdit">Recado (opcional)</label>
+            <textarea id="rEdit" maxlength="500">${esc(m.recado || "")}</textarea>
+          </div>
+          <p class="msg" id="msgEdit" role="status" aria-live="polite"></p>
+          <div class="linha-botoes">
+            <button class="enviar" id="btnSalvarData" type="submit">Salvar</button>
+            <button type="button" class="linkbtn" id="voltarEdit">Voltar</button>
+          </div>
+        </form>
+      </li>`;
+    }
+    const confirmando = state.cancelandoMarc === m.id;
+    return `<li class="resumo data" data-mid="${esc(m.id)}">
+      <div class="data-info">${CHECK}<div>
+        <strong>${rotuloData(m.iso)} ${esc(fmtDataLonga(m.iso))}</strong>
+        ${m.recado ? `<small>“${esc(m.recado)}”</small>` : ""}
+      </div></div>
+      ${confirmando
+        ? `<div class="data-conf"><span>Cancelar esta data?</span>
+             <button type="button" class="enviar mini perigo" data-acao="cancelar-sim">Sim, cancelar</button>
+             <button type="button" class="linkbtn pequeno" data-acao="cancelar-nao">Não</button></div>`
+        : `<div class="data-acoes">
+             <button type="button" class="linkbtn pequeno" data-acao="editar">Editar</button>
+             <button type="button" class="linkbtn pequeno" data-acao="cancelar">Cancelar</button></div>`}
+      <p class="msg" id="msg-${esc(m.id)}" role="status" aria-live="polite"></p>
+    </li>`;
+  }
+
   function etapa1(e){
-    const m = e.marcado;
-    if(m && !state.alterandoData){
-      return `<div class="resumo">${CHECK}<div>
-          <strong>${rotuloData(m.iso)} ${esc(fmtDataLonga(m.iso))}</strong>
-          ${m.recado ? `<small>“${esc(m.recado)}”</small>` : ""}
-          ${e.avaliado ? "" : `<small>Depois de ir, volte aqui e avalie.</small>`}
-        </div></div>
-        <button type="button" class="linkbtn" id="alterarData">Marcar outro dia</button>`;
+    const ms = e.marcacoes;
+    if(ms.length && !state.novaData){
+      return `<ul class="datas">${ms.map(linhaData).join("")}</ul>
+        <button type="button" class="linkbtn" id="novaData">Marcar outra data</button>
+        ${e.avaliado ? "" : `<p class="dica">Depois de ir, volte aqui e avalie.</p>`}`;
     }
     return `<form id="formMarcar" novalidate>
         <div>
@@ -447,7 +520,10 @@ textarea::placeholder{color:var(--muted);opacity:.8}
           <textarea id="recado" maxlength="500" placeholder="Ex.: prefiro mesa na varanda"></textarea>
         </div>
         <p class="msg" id="msg1" role="status" aria-live="polite"></p>
-        <button class="enviar" id="btnMarcar" type="submit">Marcar este dia</button>
+        <div class="linha-botoes">
+          <button class="enviar" id="btnMarcar" type="submit">Marcar este dia</button>
+          ${ms.length ? `<button type="button" class="linkbtn" id="voltarData">Voltar</button>` : ""}
+        </div>
       </form>`;
   }
 
@@ -456,7 +532,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     if(!m){
       return { bloq: true, html: `<p class="dica">Disponível depois de marcar o dia. Volte aqui depois de ir para dar as notas.</p>` };
     }
-    if(LIBERAR_NOTA_SO_APOS_A_DATA && new Date(m.iso) > new Date()){
+    if(LIBERAR_NOTA_SO_APOS_A_DATA && !e.marcacoes.some(x => new Date(x.iso) <= new Date())){
       return { bloq: true, html: `<p class="dica">Libera depois do dia marcado (${esc(fmtDataLonga(m.iso))}).</p>` };
     }
     if(e.avaliado && !state.refazendoNota){
@@ -504,7 +580,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
         <h2>${esc(r.nome)}</h2>
         ${r.bairro ? `<p class="bairro">${esc(r.bairro)}</p>` : ""}
         ${geo.pos ? `<p class="dist-detalhe">${GEO}<span>${fmtDist(distanciaM(geo.pos, r))} de você, em linha reta</span></p>` : ""}
-        ${e.marcado ? `<p class="chip-data">${CAL}<span>${rotuloData(e.marcado.iso)} ${esc(fmtDataLonga(e.marcado.iso))}</span></p>` : ""}
+        ${e.marcado ? `<p class="chip-data">${CAL}<span>${rotuloData(e.marcado.iso)} ${esc(fmtDataLonga(e.marcado.iso))}${e.marcacoes.length > 1 ? ` (+${e.marcacoes.length - 1})` : ""}</span></p>` : ""}
         ${link ? `<a class="site" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Ver no ${/instagram\.com/.test(link) ? "Instagram" : "site"}</a>` : ""}
         <p class="editar-linha"><button type="button" class="linkbtn editar" id="btnEditar">${LAPIS} Editar informações</button></p>
 
@@ -524,8 +600,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     $("#voltar").addEventListener("click", voltar);
     $("#btnEditar").addEventListener("click", () => abrirNovo(r.id));
 
-    const fm = $("#formMarcar");       if(fm) fm.addEventListener("submit", marcar);
-    const ad = $("#alterarData");      if(ad) ad.addEventListener("click", () => { state.alterandoData = true; renderDetalhe(); });
+    ligarDatas();
     const rf = $("#refazer");          if(rf) rf.addEventListener("click", () => { state.refazendoNota = true; state.notas = vazias(); renderDetalhe(); });
     const fa = $("#formAvaliar");
     if(fa){
@@ -559,6 +634,74 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     m.textContent = texto; m.className = "msg " + (tipo || "");
   }
 
+  function ligarDatas(){
+    const fm = $("#formMarcar");  if(fm) fm.addEventListener("submit", marcar);
+    const nd = $("#novaData");    if(nd) nd.addEventListener("click", () => { state.novaData = true; renderDetalhe(); });
+    const vd = $("#voltarData");  if(vd) vd.addEventListener("click", () => { state.novaData = false; renderDetalhe(); });
+    $("#vista").querySelectorAll("[data-acao]").forEach(b => b.addEventListener("click", () => {
+      const mid = b.closest("[data-mid]").dataset.mid, a = b.dataset.acao;
+      if(a === "editar"){ state.editandoMarc = mid; state.cancelandoMarc = null; renderDetalhe(); }
+      else if(a === "cancelar"){ state.cancelandoMarc = mid; state.editandoMarc = null; renderDetalhe(); }
+      else if(a === "cancelar-nao"){ state.cancelandoMarc = null; renderDetalhe(); }
+      else if(a === "cancelar-sim"){ cancelarData(mid, b); }
+    }));
+    const fe = $("#formEditarData");
+    if(fe){
+      fe.addEventListener("submit", salvarData);
+      $("#voltarEdit").addEventListener("click", () => { state.editandoMarc = null; renderDetalhe(); });
+    }
+  }
+
+  const msgLimite = e => /Muitas/.test((e && e.message) || "") ? "Muitas alterações há pouco. Tente de novo mais tarde." : null;
+
+  // remarcar: grava um evento "remarcar" com a data e o recado novos (a marcação original não é alterada)
+  async function salvarData(ev){
+    ev.preventDefault();
+    const mid = state.editandoMarc, rid = state.sel;
+    const atual = marcacoesDe(rid).find(m => m.id === mid);
+    if(!atual) return;
+    const val = $("#qEdit").value, recado = $("#rEdit").value.trim();
+    if(!val){ mensagem("#msgEdit", "Escolha o dia e a hora.", "erro"); return; }
+    const d = new Date(val);
+    if(isNaN(d)){ mensagem("#msgEdit", "Data inválida. Escolha de novo.", "erro"); return; }
+    if(d.getTime() === new Date(atual.iso).getTime() && recado === (atual.recado || "")){ mensagem("#msgEdit", "Nada mudou. Altere o dia, a hora ou o recado.", "erro"); return; }
+    if(!sb){ mensagem("#msgEdit", "Supabase não configurado. Preencha config.js.", "erro"); return; }
+
+    const btn = $("#btnSalvarData");
+    btn.disabled = true; btn.textContent = "Salvando…"; mensagem("#msgEdit", "");
+    const { error } = await sb.from("marcacoes_alteracoes").insert({
+      marcacao_id: mid, restaurante_id: rid, acao: "remarcar", data_hora: d.toISOString(), comentario: recado || null,
+    });
+    if(error){
+      console.error(error);
+      btn.disabled = false; btn.textContent = "Salvar";
+      mensagem("#msgEdit", msgLimite(error) || "Não foi possível salvar. Verifique a conexão e tente de novo.", "erro");
+      return;
+    }
+    cacheMarcacoes(rid, ls => ls.map(m => m.id === mid ? { ...m, iso: d.toISOString(), recado } : m));
+    state.editandoMarc = null;
+    atualizarPin(rid);
+    renderDetalhe();
+  }
+
+  // cancelar: grava um evento "cancelar" (nada é apagado; a data só deixa de aparecer)
+  async function cancelarData(mid, btn){
+    const rid = state.sel, alvo = `#msg-${mid}`;
+    if(!sb){ mensagem(alvo, "Supabase não configurado. Preencha config.js.", "erro"); return; }
+    btn.disabled = true; btn.textContent = "Cancelando…"; mensagem(alvo, "");
+    const { error } = await sb.from("marcacoes_alteracoes").insert({ marcacao_id: mid, restaurante_id: rid, acao: "cancelar" });
+    if(error){
+      console.error(error);
+      btn.disabled = false; btn.textContent = "Sim, cancelar";
+      mensagem(alvo, msgLimite(error) || "Não foi possível cancelar. Verifique a conexão e tente de novo.", "erro");
+      return;
+    }
+    cacheMarcacoes(rid, ls => ls.filter(m => m.id !== mid));
+    state.cancelandoMarc = null;
+    atualizarPin(rid);
+    renderDetalhe();
+  }
+
   async function marcar(ev){
     ev.preventDefault();
     const val = $("#quando").value;
@@ -581,9 +724,8 @@ textarea::placeholder{color:var(--muted);opacity:.8}
       mensagem("#msg1", "Não foi possível marcar. Verifique a conexão e tente de novo.", "erro");
       return;
     }
-    salvarEstado(state.sel, { marcado: { id, iso: d.toISOString(), recado } });
-    if(servidor !== null) servidor[state.sel] = { id, iso: d.toISOString() };
-    state.alterandoData = false;
+    cacheMarcacoes(state.sel, ls => [...ls, { id, iso: d.toISOString(), recado }]);
+    state.novaData = false;
     atualizarPin(state.sel);
     renderDetalhe();
   }
@@ -597,7 +739,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     btn.disabled = true; btn.textContent = "Enviando…"; mensagem("#msg2", "");
 
     const e = estadoEfetivo(state.sel);
-    const payload = { restaurante_id: state.sel, marcacao_id: e.marcado ? e.marcado.id : null, comentario: $("#comoFoi").value.trim() || null };
+    const payload = { restaurante_id: state.sel, marcacao_id: paraAvaliar(e.marcacoes), comentario: $("#comoFoi").value.trim() || null };
     CATEGORIAS.forEach(c => { payload[c.id] = state.notas[c.id]; });
 
     const { error } = await sb.from("avaliacoes").insert(payload);
@@ -619,7 +761,7 @@ textarea::placeholder{color:var(--muted);opacity:.8}
     const r = porId[id]; if(!r) return;
     const anterior = state.sel;
     if(novo.ativo){ novo.ativo = false; novo.editId = null; limparPinNovo(); revelarMarcadores(); limparFotoNova(); $(".app").classList.remove("novo"); }
-    state.sel = id; state.notas = vazias(); state.alterandoData = false; state.refazendoNota = false;
+    state.sel = id; state.notas = vazias(); state.novaData = false; state.editandoMarc = null; state.cancelandoMarc = null; state.refazendoNota = false;
     $(".app").classList.add("detalhe");
     map.invalidateSize({ animate: false });
     if(anterior) atualizarPin(anterior);
@@ -1165,11 +1307,12 @@ textarea::placeholder{color:var(--muted);opacity:.8}
   async function carregarMarcacoes(){
     if(!sb) return;
     try{
-      const { data, error } = await sb.rpc("datas_marcadas");
+      const { data, error } = await sb.rpc("marcacoes_atuais");
       if(error) throw error;
-      const novo = {};
-      (data || []).forEach(l => { novo[l.restaurante_id] = { id: l.id, iso: l.data_hora }; });
-      servidor = novo;
+      const porLugar = {};
+      (data || []).forEach(l => { (porLugar[l.restaurante_id] = porLugar[l.restaurante_id] || []).push({ id: l.id, iso: l.data_hora, recado: l.comentario || "" }); });
+      Object.keys(porLugar).forEach(k => { porLugar[k] = ordenarDatas(porLugar[k]); });
+      servidor = porLugar;
     }catch(err){
       console.warn("Não foi possível ler as datas marcadas (rode o schema.sql atualizado):", err);
       return;

@@ -11,7 +11,7 @@ index.html          página (Leaflet + supabase-js via CDN)
 config.js           URL e chave do Supabase (NÃO sobrescreva ao atualizar)
 restaurantes.js     lista de restaurantes
 fotos/              logos/fotos
-supabase/schema.sql tabelas (marcacoes, avaliacoes, locais, edicoes_lugar) + RLS + funções + view de resumo
+supabase/schema.sql tabelas (marcacoes, marcacoes_alteracoes, avaliacoes, locais, edicoes_lugar) + RLS + funções + view de resumo
 supabase/storage.sql bucket de fotos (fotos-lugares) + regras de envio
 supabase/functions/avisar-telegram/   aviso opcional no Telegram
 ```
@@ -71,8 +71,27 @@ Ao abrir um lugar, o link **"Editar informações"** abre o mesmo formulário do
 - **Foto na edição:** "Trocar foto" no mesmo formulário. A foto nova vale por cima da original (a do `restaurantes.js` não é apagada).
 - **Importante:** se você mudar o nome ou o endereço de um lugar fixo no `restaurantes.js`, uma edição feita pelo site continua valendo por cima. Para o arquivo voltar a mandar, apague as edições daquele lugar no banco.
 
+## Datas marcadas: ver, editar e cancelar
+Cada lugar pode ter **várias datas marcadas**. Ao abrir um lugar, a etapa 1 lista todas, em ordem de data ("Marcado para…" ou "Foi em…" quando já passou), cada uma com:
+- **Editar:** muda o dia, a hora e o recado (o formulário abre preenchido, na própria linha).
+- **Cancelar:** pede confirmação ("Sim, cancelar" / "Não") e a data some do site.
+- **Marcar outra data:** cria mais uma.
+
+**Como é gravado:** nada é sobrescrito nem apagado. A marcação original fica em `marcacoes`; cada remarcação ou cancelamento vira um evento em `marcacoes_alteracoes`, e o site mostra o estado do evento mais recente de cada data. Por isso tudo dá para desfazer pelo SQL Editor (consultas no fim do `schema.sql`):
+```sql
+-- histórico de remarcações e cancelamentos
+select restaurante_id, acao, data_hora at time zone 'America/Fortaleza' as nova_data, comentario, criado_em, marcacao_id
+from public.marcacoes_alteracoes order by criado_em desc;
+-- desfazer um cancelamento/remarcação: apague o evento
+delete from public.marcacoes_alteracoes where id = '...';
+```
+- **Selo e destaque:** a lista e o pin usam a **próxima** data que ainda vai acontecer (ou a mais recente, se todas já passaram). Com mais de uma, aparece "+1", "+2"…
+- **Avaliação:** com várias datas, a avaliação fica ligada à visita **mais recente que já passou** (ou à próxima, se nenhuma passou).
+- **Confiança:** sem login, quem tiver o link pode editar ou cancelar qualquer data; o histórico garante que dá para recuperar, e o banco limita a 60 alterações por hora.
+- **Ativar:** rode o `supabase/schema.sql` novo antes de publicar o site. Sem a função `marcacoes_atuais`, o site usa só a cópia guardada no aparelho.
+
 ## Data marcada visível para todo mundo
-Ao abrir um restaurante, o site mostra "Marcado para ..." (ou "Foi em ..." se a data já passou), em qualquer aparelho. Para isso o `schema.sql` cria a função `datas_marcadas()`, que devolve só o id, o restaurante e a data/hora da marcação mais recente de cada lugar. O recado e o restante da tabela continuam privados, porque não existe policy de SELECT. Isso significa que **quem tiver o link vê as datas marcadas**. Se a consulta falhar (por exemplo, a função ainda não foi criada), o site usa só o que está salvo no aparelho.
+Ao abrir um restaurante, o site mostra as datas marcadas em qualquer aparelho. Para isso o `schema.sql` cria a função `marcacoes_atuais()`, que devolve as datas ativas (com o recado) já considerando remarcações e escondendo as canceladas; as tabelas continuam sem policy de SELECT. Isso significa que **quem tiver o link vê as datas e os recados**. (A função antiga `datas_marcadas()` ficou no banco, sem uso.) Se a consulta falhar (por exemplo, a função ainda não foi criada), o site usa só o que está salvo no aparelho.
 
 ## Ver as respostas
 No SQL Editor (as consultas estão comentadas no fim do `schema.sql`):
@@ -107,7 +126,7 @@ Atualize os arquivos um a um. Se descompactar um zip por cima da pasta, o `confi
    supabase secrets set TELEGRAM_TOKEN=... TELEGRAM_CHAT_ID=... WEBHOOK_SECRET=uma-string-longa-aleatoria
    supabase functions deploy avisar-telegram --no-verify-jwt
    ```
-3. **Database > Webhooks > Create**, uma vez para cada tabela que quiser acompanhar: `marcacoes`, `avaliacoes`, `locais` e `edicoes_lugar`. Em ambas: evento `INSERT`, HTTP Request, POST, URL `https://SEU-REF.supabase.co/functions/v1/avisar-telegram`, header `x-webhook-secret` com o mesmo valor do secret.
+3. **Database > Webhooks > Create**, uma vez para cada tabela que quiser acompanhar: `marcacoes`, `marcacoes_alteracoes`, `avaliacoes`, `locais` e `edicoes_lugar`. Em ambas: evento `INSERT`, HTTP Request, POST, URL `https://SEU-REF.supabase.co/functions/v1/avisar-telegram`, header `x-webhook-secret` com o mesmo valor do secret.
 
 ## Segurança e escala
 - **A chave publishable/anon é pública**, e tudo bem: a proteção é o RLS. As tabelas só têm policy de `INSERT`, então quem abre o site não lê nem altera nada. Nunca use a secret/`service_role` no front.
