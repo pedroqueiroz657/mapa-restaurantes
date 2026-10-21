@@ -1,4 +1,4 @@
-// Edge Function chamada por Database Webhooks (INSERT em public.marcacoes, public.avaliacoes, public.locais e public.edicoes_lugar).
+// Edge Function chamada por Database Webhooks (INSERT em public.marcacoes, public.marcacoes_alteracoes, public.avaliacoes, public.locais e public.edicoes_lugar).
 // Secrets necessários: TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, WEBHOOK_SECRET
 // Deploy: supabase functions deploy avisar-telegram --no-verify-jwt
 
@@ -24,6 +24,21 @@ Deno.serve(async (req) => {
       `Lugar: ${record.restaurante_id}\n` +
       `Quando: ${quando}` +
       (record.comentario ? `\nRecado: ${record.comentario}` : "");
+  } else if (table === "marcacoes_alteracoes") {
+    if (record.acao === "cancelar") {
+      text = `Data cancelada.\nLugar: ${record.restaurante_id}`;
+    } else {
+      const quando = new Date(record.data_hora).toLocaleString("pt-BR", {
+        timeZone: "America/Fortaleza",
+        dateStyle: "full",
+        timeStyle: "short",
+      });
+      text =
+        `Data remarcada!\n` +
+        `Lugar: ${record.restaurante_id}\n` +
+        `Nova data: ${quando}` +
+        (record.comentario ? `\nRecado: ${record.comentario}` : "");
+    }
   } else if (table === "avaliacoes") {
     text =
       `Nova avaliação!\n` +
